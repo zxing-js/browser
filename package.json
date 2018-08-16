@@ -41,7 +41,6 @@
     },
     "dependencies": {
         "@zxing/library": "^0.8.0",
-        "global": "^4.3.2"
     },
     "devDependencies": {
         "@types/chai": "^4.1.4",

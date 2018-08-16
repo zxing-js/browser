@@ -4,7 +4,7 @@ import {
     ErrorCorrectionLevel,
     IllegalArgumentException,
     IllegalStateException,
-    QRCode
+    QRCode,
 } from '@zxing/library';
 
 class BrowserQRCodeSvgWriter {
