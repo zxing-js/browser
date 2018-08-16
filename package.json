@@ -1,0 +1,57 @@
+{
+    "name": "@zxing/browser",
+    "version": "0.0.0",
+    "description": "ZXing for JS's browser layer.",
+    "keywords": [
+        "reader",
+        "writer",
+        "decode",
+        "encode",
+        "scanner",
+        "generator",
+        "barcode",
+        "qr-code",
+        "barcode 1d",
+        "barcode 2d",
+        "typescript",
+        "zxing"
+    ],
+    "authors": [
+        {
+            "name": "David Werth",
+            "email": "werth.david@gmail.com"
+        },
+        {
+            "name": "Luiz Barni",
+            "email": "machado@odahcam.com"
+        }
+    ],
+    "license": "MIT",
+    "bugs": "https://github.com/zxing-js/browser/issues/new",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/zxing-js/browser"
+    },
+    "private": false,
+    "main": "./umd/index.min.js",
+    "module": "./esm5/index.js",
+    "typings": "./esm5/index.d.ts",
+    "scripts": {
+        "test": "mocha --require ts-node/register --watch-extensions ts 'test/**/*.ts'"
+    },
+    "dependencies": {
+        "@zxing/library": "^0.8.0",
+        "global": "^4.3.2"
+    },
+    "devDependencies": {
+        "@types/chai": "^4.1.4",
+        "@types/mocha": "^5.2.5",
+        "chai": "^4.1.2",
+        "eslint": "^4.19.1",
+        "istanbul-instrumenter-loader": "^3.0.1",
+        "mocha": "^5.2.0",
+        "ts-node": "^7.0.1",
+        "tslint": "^5.11.0",
+        "typescript": "^3.0.1"
+    }
+}
