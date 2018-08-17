@@ -7,29 +7,24 @@ import {
     QRCode,
 } from '@zxing/library';
 
-class BrowserQRCodeSvgWriter {
+export class BrowserQRCodeSvgWriter {
 
     private static readonly QUIET_ZONE_SIZE = 4;
+
     /**
      * SVG markup NameSpace
      */
     private static readonly SVG_NS = 'http://www.w3.org/2000/svg';
 
     /**
-     * A HTML container element for the image.
-     */
-    private containerElement: HTMLElement;
-
-    /**
      * Constructs. 😉
      */
-    public constructor(containerElement: string | HTMLElement) {
-        if (typeof containerElement === 'string') {
-            this.containerElement = document.getElementById(containerElement);
-        } else {
-            this.containerElement = containerElement;
-        }
-    }
+    public constructor(
+        /**
+         * A HTML container element for the image.
+         */
+        readonly containerElement: HTMLElement,
+    ) { }
 
     public write(
         contents: string,
@@ -55,12 +50,13 @@ class BrowserQRCodeSvgWriter {
 
         if (hints !== null) {
 
-            if (undefined !== hints.get(EncodeHintType.ERROR_CORRECTION)) {
-                errorCorrectionLevel = ErrorCorrectionLevel.fromString(hints.get(EncodeHintType.ERROR_CORRECTION).toString());
+            if (hints.get(EncodeHintType.ERROR_CORRECTION)) {
+                const stringHints = hints.get(EncodeHintType.ERROR_CORRECTION).toString();
+                errorCorrectionLevel = ErrorCorrectionLevel.fromString(stringHints);
             }
 
-            if (undefined !== hints.get(EncodeHintType.MARGIN)) {
-                quietZone = Number.parseInt(hints.get(EncodeHintType.MARGIN).toString(), 10);
+            if (hints.get(EncodeHintType.MARGIN)) {
+                quietZone = parseInt(hints.get(EncodeHintType.MARGIN).toString(), 10);
             }
         }
 
@@ -73,7 +69,12 @@ class BrowserQRCodeSvgWriter {
      * Note that the input matrix uses 0 == white, 1 == black.
      * The output matrix uses 0 == black, 255 == white (i.e. an 8 bit greyscale bitmap).
      */
-    private renderResult(code: QRCode, width: number /*int*/, height: number /*int*/, quietZone: number /*int*/): SVGSVGElement {
+    private renderResult(
+        code: QRCode,
+        width: number,
+        height: number,
+        quietZone: number,
+    ): SVGSVGElement {
 
         const input = code.getMatrix();
 
@@ -118,8 +119,8 @@ class BrowserQRCodeSvgWriter {
 
         const svgElement = document.createElementNS(BrowserQRCodeSvgWriter.SVG_NS, 'svg');
 
-        svgElement.setAttributeNS(null, 'height', w.toString());
-        svgElement.setAttributeNS(null, 'width', h.toString());
+        svgElement.setAttributeNS('', 'height', w.toString());
+        svgElement.setAttributeNS('', 'width', h.toString());
 
         return svgElement;
     }
@@ -128,14 +129,12 @@ class BrowserQRCodeSvgWriter {
 
         const rect = document.createElementNS(BrowserQRCodeSvgWriter.SVG_NS, 'rect');
 
-        rect.setAttributeNS(null, 'x', x.toString());
-        rect.setAttributeNS(null, 'y', y.toString());
-        rect.setAttributeNS(null, 'height', w.toString());
-        rect.setAttributeNS(null, 'width', h.toString());
-        rect.setAttributeNS(null, 'fill', '#000000');
+        rect.setAttributeNS('', 'x', x.toString());
+        rect.setAttributeNS('', 'y', y.toString());
+        rect.setAttributeNS('', 'height', w.toString());
+        rect.setAttributeNS('', 'width', h.toString());
+        rect.setAttributeNS('', 'fill', '#000000');
 
         return rect;
     }
 }
-
-export { BrowserQRCodeSvgWriter };

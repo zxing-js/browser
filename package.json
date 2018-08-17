@@ -40,7 +40,7 @@
         "test": "mocha --require ts-node/register --watch-extensions ts 'test/**/*.ts'"
     },
     "dependencies": {
-        "@zxing/library": "^0.8.0",
+        "@zxing/library": "^0.8.0"
     },
     "devDependencies": {
         "@types/chai": "^4.1.4",
