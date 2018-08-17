@@ -37,6 +37,7 @@
     "module": "./esm5/index.js",
     "typings": "./esm5/index.d.ts",
     "scripts": {
+        "prepublish": "tsc",
         "test": "mocha --require ts-node/register --watch-extensions ts 'test/**/*.ts'"
     },
     "dependencies": {
