@@ -21,15 +21,15 @@ import { VideoInputDevice } from './VideoInputDevice';
  */
 export class BrowserCodeReader {
 
-    private videoElement: HTMLVideoElement;
-    private imageElement: HTMLImageElement;
-    private canvasElement: HTMLCanvasElement;
-    private canvasElementContext: CanvasRenderingContext2D;
-    private timeoutHandler: number;
-    private stream: MediaStream;
-    private videoPlayEndedEventListener: EventListener;
-    private videoPlayingEventListener: EventListener;
-    private imageLoadedEventListener: EventListener;
+    private videoElement?: HTMLVideoElement;
+    private imageElement?: HTMLImageElement;
+    private canvasElement?: HTMLCanvasElement;
+    private canvasElementContext?: CanvasRenderingContext2D;
+    private timeoutHandler?: number;
+    private stream?: MediaStream;
+    private videoPlayEndedEventListener?: EventListener;
+    private videoPlayingEventListener?: EventListener;
+    private imageLoadedEventListener?: EventListener;
 
     /**
      * Creates an instance of BrowserCodeReader.
@@ -144,11 +144,17 @@ export class BrowserCodeReader {
                 me.stop();
                 reject(new NotFoundException());
             };
+
+            if (!me.videoElement) {
+                throw new Error('The video element is not defined!');
+            }
+
             me.videoElement.addEventListener('ended', me.videoPlayEndedEventListener);
 
             me.videoPlayingEventListener = () => {
                 me.decodeOnceWithDelay(resolve, reject);
             };
+
             me.videoElement.addEventListener('playing', me.videoPlayingEventListener);
 
             me.videoElement.setAttribute('autoplay', 'true');
@@ -176,14 +182,21 @@ export class BrowserCodeReader {
 
         const me = this;
         return new Promise<Result>((resolve, reject) => {
+
+            if (!me.imageElement || !imageUrl) {
+                throw new ArgumentException('imageElement with a src set or an url must be provided');
+            }
+
             if (undefined !== imageUrl) {
                 me.imageLoadedEventListener = () => {
                     me.decodeOnce(resolve, reject, false, true);
                 };
+
                 me.imageElement.addEventListener('load', me.imageLoadedEventListener);
 
                 me.imageElement.src = imageUrl;
-            } else if (this.isImageLoaded(this.imageElement)) {
+
+            } else if (this.isImageLoaded(me.imageElement)) {
                 me.decodeOnce(resolve, reject, false, true);
             } else {
                 throw new ArgumentException(`either src or a loaded img should be provided`);
@@ -245,13 +258,19 @@ export class BrowserCodeReader {
     private prepareVideoElement(videoElement?: string | HTMLVideoElement) {
 
         if (undefined === videoElement) {
+
             this.videoElement = document.createElement('video');
             this.videoElement.width = 640;
             this.videoElement.height = 480;
+
         } else if (typeof videoElement === 'string') {
-            this.videoElement = <HTMLVideoElement>this.getMediaElement(videoElement, 'video');
+
+            this.videoElement = this.getMediaElement(videoElement, 'video') as HTMLVideoElement;
+
         } else {
+
             this.videoElement = videoElement;
+
         }
 
         // Needed for iOS 11
@@ -259,6 +278,24 @@ export class BrowserCodeReader {
         this.videoElement.setAttribute('muted', 'true');
         this.videoElement.setAttribute('playsinline', 'true');
         this.videoElement.setAttribute('autofocus', 'true');
+    }
+
+    private prepareImageElement(imageElement?: string | HTMLImageElement) {
+        if (!imageElement) {
+
+            this.imageElement = document.createElement('img');
+            this.imageElement.width = 200;
+            this.imageElement.height = 200;
+
+        } else if (typeof imageElement === 'string') {
+
+            this.imageElement = this.getMediaElement(imageElement, 'img') as HTMLImageElement;
+
+        } else {
+
+            this.imageElement = imageElement;
+
+        }
     }
 
     private getMediaElement(mediaElementId: string, type: string) {
@@ -297,20 +334,12 @@ export class BrowserCodeReader {
         return true;
     }
 
-    private prepareImageElement(imageElement?: string | HTMLImageElement) {
-        if (!imageElement) {
-            this.imageElement = document.createElement('img');
-            this.imageElement.width = 200;
-            this.imageElement.height = 200;
-        } else if (typeof imageElement === 'string') {
-            this.imageElement = this.getMediaElement(imageElement, 'img') as HTMLImageElement;
-        } else {
-            this.imageElement = imageElement;
-        }
-    }
-
     private decodeOnceWithDelay(resolve: (result: Result) => any, reject: (error: any) => any): void {
-        this.timeoutHandler = window.setTimeout(this.decodeOnce.bind(this, resolve, reject), this.timeBetweenScansMillis);
+
+        const handler = this.decodeOnce.bind(this, resolve, reject);
+        const timeout  = this.timeBetweenScansMillis;
+
+        this.timeoutHandler = window.setTimeout(handler, timeout);
     }
 
     private decodeOnce(
@@ -336,7 +365,10 @@ export class BrowserCodeReader {
             if (retryIfNotFound && re instanceof NotFoundException) {
                 // Not found, trying again
                 this.decodeOnceWithDelay(resolve, reject);
-            } else if (retryIfChecksumOrFormatError && (re instanceof ChecksumException || re instanceof FormatException)) {
+            } else if (retryIfChecksumOrFormatError && (
+                re instanceof ChecksumException
+                || re instanceof FormatException
+            )) {
                 // checksum or format error, trying again
                 this.decodeOnceWithDelay(resolve, reject);
             } else {
@@ -366,7 +398,7 @@ export class BrowserCodeReader {
         canvasElement.height = height;
 
         this.canvasElement = canvasElement;
-        this.canvasElementContext = canvasElement.getContext('2d');
+        this.canvasElementContext = canvasElement.getContext('2d') || undefined;
 
         // this.videoElement.parentElement.appendChild(this.canvasElement)
     }
