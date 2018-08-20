@@ -2,7 +2,7 @@
 
 # ZXing
 
-> 💾 This still a WIP!!!
+## This is a Work In Progress!!! ⚠
 
 ### Browser layer for using in browser platform
 
