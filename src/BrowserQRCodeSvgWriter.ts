@@ -30,7 +30,7 @@ export class BrowserQRCodeSvgWriter {
         contents: string,
         width: number,
         height: number,
-        hints: Map<EncodeHintType, any> = null,
+        hints: Map<EncodeHintType, any>,
     ): SVGSVGElement {
 
         if (contents.length === 0) {
