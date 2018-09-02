@@ -17,6 +17,7 @@ export class HTMLCanvasElementLuminanceSource extends LuminanceSource {
         }
 
         const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
         return HTMLCanvasElementLuminanceSource.toGrayscaleBuffer(imageData.data, canvas.width, canvas.height);
     }
 
