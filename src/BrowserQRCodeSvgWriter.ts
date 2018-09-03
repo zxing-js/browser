@@ -1,10 +1,10 @@
 import {
     EncodeHintType,
-    Encoder,
-    ErrorCorrectionLevel,
     IllegalArgumentException,
     IllegalStateException,
-    QRCode,
+    QRCodeDecoderErrorCorrectionLevel,
+    QRCodeEncoder,
+    QRCodeEncoderQRCode,
 } from '@zxing/library';
 
 export class BrowserQRCodeSvgWriter {
@@ -45,14 +45,14 @@ export class BrowserQRCodeSvgWriter {
             throw new IllegalArgumentException('Requested dimensions are too small: ' + width + 'x' + height);
         }
 
-        let errorCorrectionLevel = ErrorCorrectionLevel.L;
+        let errorCorrectionLevel = QRCodeDecoderErrorCorrectionLevel.L;
         let quietZone = BrowserQRCodeSvgWriter.QUIET_ZONE_SIZE;
 
         if (hints !== null) {
 
             if (hints.get(EncodeHintType.ERROR_CORRECTION)) {
                 const stringHints = hints.get(EncodeHintType.ERROR_CORRECTION).toString();
-                errorCorrectionLevel = ErrorCorrectionLevel.fromString(stringHints);
+                errorCorrectionLevel = QRCodeDecoderErrorCorrectionLevel.fromString(stringHints);
             }
 
             if (hints.get(EncodeHintType.MARGIN)) {
@@ -60,7 +60,7 @@ export class BrowserQRCodeSvgWriter {
             }
         }
 
-        const code = Encoder.encode(contents, errorCorrectionLevel, hints);
+        const code = QRCodeEncoder.encode(contents, errorCorrectionLevel, hints);
 
         return this.renderResult(code, width, height, quietZone);
     }
@@ -70,7 +70,7 @@ export class BrowserQRCodeSvgWriter {
      * The output matrix uses 0 == black, 255 == white (i.e. an 8 bit greyscale bitmap).
      */
     private renderResult(
-        code: QRCode,
+        code: QRCodeEncoderQRCode,
         width: number,
         height: number,
         quietZone: number,

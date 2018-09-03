@@ -1,25 +1,24 @@
 import { BrowserCodeReader } from './BrowserCodeReader';
 
-import { DecodeHintType, MultiFormatOneDReader } from '@zxing/library';
+import { DecodeHintType } from '@zxing/library';
+
+import MultiFormatOneDReader from '@zxing/library/esm5/core/oned/MultiFormatOneDReader';
 
 /**
  * Barcode reader reader to use from browser.
- *
- * @class BrowserBarcodeReader
- * @extends {BrowserCodeReader}
  */
 export class BrowserBarcodeReader extends BrowserCodeReader {
 
     /**
      * Creates an instance of BrowserBarcodeReader.
-     * @param {number} [timeBetweenScansMillis=500] the time delay between subsequent decode tries
-     * @param {Map<DecodeHintType, any>} hints
-     * @memberOf BrowserBarcodeReader
+     *
+     * @param timeBetweenScansMillis the time delay between subsequent decode tries
      */
     public constructor(
         timeBetweenScansMillis: number = 500,
         hints?: Map<DecodeHintType, any>,
     ) {
+        hints = hints || new Map<DecodeHintType, any>();
         super(new MultiFormatOneDReader(hints), timeBetweenScansMillis, hints);
     }
 }

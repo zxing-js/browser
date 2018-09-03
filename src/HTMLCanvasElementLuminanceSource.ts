@@ -42,6 +42,7 @@ export class HTMLCanvasElementLuminanceSource extends LuminanceSource {
                 // .299R + 0.587G + 0.114B (YUV/YIQ for PAL and NTSC),
                 // (306*R) >> 10 is approximately equal to R*0.299, and so on.
                 // 0x200 >> 10 is 0.5, it implements rounding.
+                // tslint:disable-next-line:no-bitwise
                 gray = (
                     306 * pixelR +
                     601 * pixelG +
@@ -58,7 +59,7 @@ export class HTMLCanvasElementLuminanceSource extends LuminanceSource {
 
     private buffer: Uint8ClampedArray;
 
-    private tempCanvasElement: HTMLCanvasElement;
+    private tempCanvasElement!: HTMLCanvasElement;
 
     public constructor(
         private canvas: HTMLCanvasElement,
@@ -129,8 +130,6 @@ export class HTMLCanvasElementLuminanceSource extends LuminanceSource {
 
     /**
      * This is always true, since the image is a gray-scale image.
-     *
-     * @return true
      */
     public isRotateSupported(): boolean {
         return true;
