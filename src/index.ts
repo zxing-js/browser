@@ -6,3 +6,4 @@ export * from './BrowserBarcodeReader';
 export * from './BrowserCodeReader';
 export * from './HTMLCanvasElementLuminanceSource';
 export * from './VideoInputDevice';
+export * from './BrowserMultiformatReader';
