@@ -37,8 +37,17 @@
     "module": "./esm5/index.js",
     "typings": "./esm5/index.d.ts",
     "scripts": {
-        "prepublish": "tsc",
-        "test": "mocha --require ts-node/register --watch-extensions ts 'test/**/*.ts'"
+        "clean": "yarn shx rm -rf umd esm esm5",
+        "build": "yarn clean && yarn build:es5 && yarn build:es6 && yarn build:umd",
+        "build:es5": "yarn tsc",
+        "build:es6": "yarn tsc --target es6 --outdir esm --module es6",
+        "build:umd": "yarn webpack --mode production",
+        "tsc": "./node_modules/.bin/tsc",
+        "pm2": "./node_modules/.bin/pm2",
+        "e2e:serve:start": "yarn pm2 serve ./ 8080 --name library-e2e",
+        "e2e:serve:stop": "yarn pm2 del library-e2e",
+        "e2e:test": "yarn e2e:serve:start && yarn e2e:run && yarn e2e:serve:stop",
+        "e2e:run": "cypress run --headless --browser chrome"
     },
     "dependencies": {
         "@zxing/library": "^0.17.1"
@@ -46,12 +55,15 @@
     "devDependencies": {
         "@types/chai": "^4.1.4",
         "@types/mocha": "^5.2.5",
+        "cypress": "^5.0.0",
         "chai": "^4.1.2",
         "eslint": "^4.19.1",
         "istanbul-instrumenter-loader": "^3.0.1",
         "mocha": "^5.2.0",
         "ts-node": "^7.0.1",
         "tslint": "^5.11.0",
-        "typescript": "^3.0.3"
+        "typescript": "^3.0.3",
+        "shx": "^0.3.2",
+        "pm2": "^4.4.1"
     }
 }
