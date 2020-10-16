@@ -37,8 +37,8 @@ jobs:
       - name: Install dependencies
         run: yarn install --frozen-lockfile
 
-      - name: Test the application
-        run: yarn test
+      - name: E2E Test the application
+        run: yarn e2e:test
 
       - name: Build the application
         run: yarn build
