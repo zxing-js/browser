@@ -1,6 +1,5 @@
-import { BrowserCodeReader } from './BrowserCodeReader';
-
 import { DataMatrixReader } from '@zxing/library';
+import { BrowserCodeReader } from './BrowserCodeReader';
 
 /**
  * QR Code reader to use from browser.
@@ -8,8 +7,7 @@ import { DataMatrixReader } from '@zxing/library';
 export class BrowserDatamatrixCodeReader extends BrowserCodeReader {
     /**
      * Creates an instance of BrowserQRCodeReader.
-     *
-     * @param timeBetweenScansMillis the time delay between subsequent decode tries
+     * @param {number} [timeBetweenScansMillis=500] the time delay between subsequent decode tries
      */
     public constructor(timeBetweenScansMillis: number = 500) {
         super(new DataMatrixReader(), timeBetweenScansMillis);

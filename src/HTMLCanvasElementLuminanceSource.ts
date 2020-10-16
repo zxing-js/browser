@@ -4,32 +4,21 @@ import {
     LuminanceSource,
 } from '@zxing/library';
 
+/**/
 export class HTMLCanvasElementLuminanceSource extends LuminanceSource {
 
     private static DEGREE_TO_RADIANS = Math.PI / 180;
 
     private static makeBufferFromCanvasImageData(canvas: HTMLCanvasElement): Uint8ClampedArray {
-
-        const ctx = canvas.getContext('2d');
-
-        if (!ctx) {
-            throw new Error('Could not get the canvas context.');
-        }
-
-        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-
+        const imageData = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
         return HTMLCanvasElementLuminanceSource.toGrayscaleBuffer(imageData.data, canvas.width, canvas.height);
     }
 
     private static toGrayscaleBuffer(imageBuffer: Uint8ClampedArray, width: number, height: number): Uint8ClampedArray {
-
         const grayscaleBuffer = new Uint8ClampedArray(width * height);
-
         for (let i = 0, j = 0, length = imageBuffer.length; i < length; i += 4, j++) {
-
             let gray;
             const alpha = imageBuffer[i + 3];
-
             // The color of fully-transparent pixels is irrelevant. They are often, technically, fully-transparent
             // black (0 alpha, and then 0 RGB). They are often used, of course as the "white" area in a
             // barcode image. Force any such pixel to be white:
@@ -42,70 +31,41 @@ export class HTMLCanvasElementLuminanceSource extends LuminanceSource {
                 // .299R + 0.587G + 0.114B (YUV/YIQ for PAL and NTSC),
                 // (306*R) >> 10 is approximately equal to R*0.299, and so on.
                 // 0x200 >> 10 is 0.5, it implements rounding.
-                // tslint:disable-next-line:no-bitwise
-                gray = (
-                    306 * pixelR +
+                gray = (306 * pixelR +
                     601 * pixelG +
                     117 * pixelB +
-                    0x200
-                ) >> 10;
+                    0x200) >> 10;
             }
-
             grayscaleBuffer[j] = gray;
         }
-
         return grayscaleBuffer;
     }
 
     private buffer: Uint8ClampedArray;
 
-    private tempCanvasElement!: HTMLCanvasElement;
+    private tempCanvasElement: HTMLCanvasElement = null;
 
-    public constructor(
-        private canvas: HTMLCanvasElement,
-    ) {
+    public constructor(private canvas: HTMLCanvasElement) {
         super(canvas.width, canvas.height);
         this.buffer = HTMLCanvasElementLuminanceSource.makeBufferFromCanvasImageData(canvas);
     }
 
-    /**
-     * Crops the source in the way you want.
-     *
-     * @param left Left offset.
-     * @param top Top offset.
-     * @param width Crop area width.
-     * @param height Crop are height.
-     */
-    public crop(
-        left: number,
-        top: number,
-        width: number,
-        height: number,
-    ): LuminanceSource {
-        this.crop(left, top, width, height);
-        return this;
-    }
-
-    public getRow(y: number, row: Uint8ClampedArray): Uint8ClampedArray {
-
+    public getRow(y: number /*int*/, row: Uint8ClampedArray): Uint8ClampedArray {
         if (y < 0 || y >= this.getHeight()) {
             throw new IllegalArgumentException('Requested row is outside the image: ' + y);
         }
-
-        const width: number = this.getWidth();
+        const width: number /*int*/ = this.getWidth();
         const start = y * width;
-
         if (row === null) {
-            return this.buffer.slice(start, start + width);
+            row = this.buffer.slice(start, start + width);
+        } else {
+            if (row.length < width) {
+                row = new Uint8ClampedArray(width);
+            }
+            // The underlying raster of image consists of bytes with the luminance values
+            // TODO: can avoid set/slice?
+            row.set(this.buffer.slice(start, start + width));
         }
-
-        if (row.length < width) {
-            row = new Uint8ClampedArray(width);
-        }
-
-        // The underlying raster of image consists of bytes with the luminance values
-        // TODO: can avoid set/slice?
-        row.set(this.buffer.slice(start, start + width));
 
         return row;
     }
@@ -114,65 +74,59 @@ export class HTMLCanvasElementLuminanceSource extends LuminanceSource {
         return this.buffer;
     }
 
-    /**
-     * Indicates if crop is supported by this class.
-     */
     public isCropSupported(): boolean {
         return true;
     }
 
-    /**
-     * Inverts the luminance source.
-     */
-    public invert(): LuminanceSource {
-        return new InvertedLuminanceSource(this);
+    public crop(left: number /*int*/, top: number /*int*/, width: number /*int*/, height: number /*int*/): LuminanceSource {
+        super.crop(left, top, width, height);
+        return this;
     }
 
     /**
      * This is always true, since the image is a gray-scale image.
+     *
+     * @return true
      */
     public isRotateSupported(): boolean {
         return true;
     }
 
-    /**
-     * Returns the canvas element.
-     */
+    public rotateCounterClockwise(): LuminanceSource {
+        this.rotate(-90);
+        return this;
+    }
+
+    public rotateCounterClockwise45(): LuminanceSource {
+        this.rotate(-45);
+        return this;
+    }
+
+    public invert(): LuminanceSource {
+        return new InvertedLuminanceSource(this);
+    }
+
     private getTempCanvasElement() {
-
-        if (!this.tempCanvasElement) {
-
+        if (null === this.tempCanvasElement) {
             const tempCanvasElement = this.canvas.ownerDocument.createElement('canvas');
-
             tempCanvasElement.width = this.canvas.width;
             tempCanvasElement.height = this.canvas.height;
-
             this.tempCanvasElement = tempCanvasElement;
         }
 
         return this.tempCanvasElement;
     }
 
-    /**
-     * Rotates the image.
-     *
-     * @param angle Angle in integer degress to rotate the image.
-     */
     private rotate(angle: number) {
-
         const tempCanvasElement = this.getTempCanvasElement();
         const tempContext = tempCanvasElement.getContext('2d');
-
-        if (!tempContext) {
-            throw new Error('Could not get the current canvas context.');
-        }
+        const angleRadians = angle * HTMLCanvasElementLuminanceSource.DEGREE_TO_RADIANS;
 
         // Calculate and set new dimensions for temp canvas
-        const angleRadians = angle * HTMLCanvasElementLuminanceSource.DEGREE_TO_RADIANS;
         const width = this.canvas.width;
         const height = this.canvas.height;
-        const newWidth = Math.ceil( Math.abs(Math.cos(angleRadians)) * width + Math.abs(Math.sin(angleRadians)) * height );
-        const newHeight = Math.ceil( Math.abs(Math.sin(angleRadians)) * width + Math.abs(Math.cos(angleRadians)) * height );
+        const newWidth = Math.ceil(Math.abs(Math.cos(angleRadians)) * width + Math.abs(Math.sin(angleRadians)) * height);
+        const newHeight = Math.ceil(Math.abs(Math.sin(angleRadians)) * width + Math.abs(Math.cos(angleRadians)) * height);
         tempCanvasElement.width = newWidth;
         tempCanvasElement.height = newHeight;
 
@@ -180,9 +134,7 @@ export class HTMLCanvasElementLuminanceSource extends LuminanceSource {
         tempContext.translate(newWidth / 2, newHeight / 2);
         tempContext.rotate(angleRadians);
         tempContext.drawImage(this.canvas, width / -2, height / -2);
-
         this.buffer = HTMLCanvasElementLuminanceSource.makeBufferFromCanvasImageData(tempCanvasElement);
-
         return this;
     }
 }

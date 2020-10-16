@@ -9,8 +9,9 @@ import {
     Reader,
     Result,
 } from '@zxing/library';
-
+import { DecodeContinuouslyCallback } from './DecodeContinuouslyCallback';
 import { HTMLCanvasElementLuminanceSource } from './HTMLCanvasElementLuminanceSource';
+import { HTMLVisualMediaElement } from './HTMLVisualMediaElement';
 import { VideoInputDevice } from './VideoInputDevice';
 
 /**
@@ -19,294 +20,385 @@ import { VideoInputDevice } from './VideoInputDevice';
 export class BrowserCodeReader {
 
     /**
-     * The HTML video element, used to display the camera stream.
+     * If navigator is present.
      */
-    private videoElement!: HTMLVideoElement;
+    public get hasNavigator() {
+        return typeof navigator !== 'undefined';
+    }
 
     /**
-     * The HTML image element, used as a fallback for the video element when decoding.
+     * If mediaDevices under navigator is supported.
      */
-    private imageElement!: HTMLImageElement;
+    public get isMediaDevicesSuported() {
+        return this.hasNavigator && !!navigator.mediaDevices;
+    }
+
+    /**
+     * If enumerateDevices under navigator is supported.
+     */
+    public get canEnumerateDevices() {
+        return !!(this.isMediaDevicesSuported && navigator.mediaDevices.enumerateDevices);
+    }
+
+    /** Time between two decoding tries in milli seconds. */
+    get timeBetweenDecodingAttempts(): number {
+        return this._timeBetweenDecodingAttempts;
+    }
+
+    /**
+     * Change the time span the decoder waits between two decoding tries.
+     *
+     * @param {number} millis Time between two decoding tries in milli seconds.
+     */
+    set timeBetweenDecodingAttempts(millis: number) {
+        this._timeBetweenDecodingAttempts = millis < 0 ? 0 : millis;
+    }
+
+    /**
+     * Sets the hints.
+     */
+    set hints(hints: Map<DecodeHintType, any>) {
+        this._hints = hints || null;
+    }
+
+    /**
+     * Sets the hints.
+     */
+    get hints(): Map<DecodeHintType, any> {
+        return this._hints;
+    }
+
+    /**
+     * Delay time between decode attempts made by the scanner.
+     */
+    protected _timeBetweenDecodingAttempts: number = 0;
 
     /**
      * The HTML canvas element, used to draw the video or image's frame for decoding.
      */
-    private canvasElement!: HTMLCanvasElement;
-
+    protected captureCanvas: HTMLCanvasElement;
     /**
      * The HTML canvas element context.
      */
-    private canvasElementContext!: CanvasRenderingContext2D;
+    protected captureCanvasContext: CanvasRenderingContext2D;
 
-    private timeoutHandler?: number;
-    private stream?: MediaStream;
-    private videoPlayEndedEventListener?: EventListener;
-    private videoPlayingEventListener?: EventListener;
+    /**
+     * The HTML image element, used as a fallback for the video element when decoding.
+     */
+    protected imageElement: HTMLImageElement;
 
-    private imageLoadedEventListener!: EventListener;
+    /**
+     * Should contain the current registered listener for image loading,
+     * used to unregister that listener when needed.
+     */
+    protected imageLoadedListener: EventListener;
+
+    /**
+     * The stream output from camera.
+     */
+    protected stream: MediaStream;
+
+    /**
+     * The HTML video element, used to display the camera stream.
+     */
+    protected videoElement: HTMLVideoElement;
+
+    /**
+     * Should contain the current registered listener for video loaded-metadata,
+     * used to unregister that listener when needed.
+     */
+    protected videoCanPlayListener: EventListener;
+
+    /**
+     * Should contain the current registered listener for video play-ended,
+     * used to unregister that listener when needed.
+     */
+    protected videoEndedListener: EventListener;
+
+    /**
+     * Should contain the current registered listener for video playing,
+     * used to unregister that listener when needed.
+     */
+    protected videoPlayingEventListener: EventListener;
+
+    /**
+     * This will break the loop.
+     */
+    private _stopContinuousDecode = false;
+
+    /**
+     * This will break the loop.
+     */
+    private _stopAsyncDecode = false;
 
     /**
      * Creates an instance of BrowserCodeReader.
+     * @param {Reader} reader The reader instance to decode the barcode
+     * @param {number} [timeBetweenScansMillis=500] the time delay between subsequent successful decode tries
      *
-     * @param reader The reader instance to decode the barcode
-     * @param timeBetweenScansMillis the time delay between subsequent decode tries
+     * @memberOf BrowserCodeReader
      */
-    public constructor(
-        private reader: Reader,
-        private timeBetweenScansMillis: number = 500,
-        private hints?: Map<DecodeHintType, any>,
-    ) { }
+    public constructor(protected readonly reader: Reader, protected timeBetweenScansMillis: number = 500, protected _hints?: Map<DecodeHintType, any>) { }
+
+    /**
+     * Lists all the available video input devices.
+     */
+    public async listVideoInputDevices(): Promise<MediaDeviceInfo[]> {
+
+        if (!this.hasNavigator) {
+            throw new Error('Can\'t enumerate devices, navigator is not present.');
+        }
+
+        if (!this.canEnumerateDevices) {
+            throw new Error('Can\'t enumerate devices, method not supported.');
+        }
+
+        const devices = await navigator.mediaDevices.enumerateDevices();
+
+        const videoDevices: MediaDeviceInfo[] = [];
+
+        for (const device of devices) {
+
+            const kind =  device.kind as string === 'video' ? 'videoinput' : device.kind;
+
+            if (kind !== 'videoinput') {
+                continue;
+            }
+
+            const deviceId = device.deviceId || ( device as any).id;
+            const label = device.label || `Video device ${videoDevices.length + 1}`;
+            const groupId = device.groupId;
+
+            const videoDevice =  { deviceId, label, kind, groupId } as MediaDeviceInfo;
+
+            videoDevices.push(videoDevice);
+        }
+
+        return videoDevices;
+    }
 
     /**
      * Obtain the list of available devices with type 'videoinput'.
      *
-     * @return an array of available video input devices
+     * @returns {Promise<VideoInputDevice[]>} an array of available video input devices
+     *
+     * @memberOf BrowserCodeReader
+     *
+     * @deprecated Use `listVideoInputDevices` instead.
      */
-    public getVideoInputDevices(): Promise<VideoInputDevice[]> {
-        return new Promise<VideoInputDevice[]>((resolve, reject) => {
-            navigator.mediaDevices.enumerateDevices()
-                .then((devices: MediaDeviceInfo[]) => {
-                    const sources = new Array<VideoInputDevice>();
-                    let c = 0;
-                    for (let i = 0, length = devices.length; i !== length; i++) {
-                        const device = devices[i];
-                        if (device.kind === 'videoinput') {
-                            sources.push(new VideoInputDevice(device.deviceId, device.label || `Video source ${c}`));
-                            c++;
-                        }
-                    }
-                    resolve(sources);
-                })
-                .catch((err: any) => {
-                    reject(err);
-                });
-        });
+    public async getVideoInputDevices(): Promise<VideoInputDevice[]> {
+
+        const devices = await this.listVideoInputDevices();
+
+        return devices.map((d) => new VideoInputDevice(d.deviceId, d.label));
+    }
+
+    /**
+     * Let's you find a device using it's Id.
+     */
+    public async findDeviceById(deviceId: string): Promise<MediaDeviceInfo> {
+
+        const devices = await this.listVideoInputDevices();
+
+        if (!devices) {
+            return null;
+        }
+
+        return devices.find((x) => x.deviceId === deviceId);
     }
 
     /**
      * Decodes the barcode from the device specified by deviceId while showing the video in the specified video element.
      *
-     * @param deviceId the id of one of the devices obtained after calling getVideoInputDevices.
-     *  Can be undefined, in this case it will decode from one of the available devices,
-     *  preffering the main camera (environment facing) if available.
-     * @param videoElement the video element in page where to show the video while decoding.
-     *  Can be either an element id or directly an HTMLVideoElement.
-     *  Can be undefined, in which case no video will be shown.
+     * @param deviceId the id of one of the devices obtained after calling getVideoInputDevices. Can be undefined, in this case it will decode from one of the available devices, preffering the main camera (environment facing) if available.
+     * @param video the video element in page where to show the video while decoding. Can be either an element id or directly an HTMLVideoElement. Can be undefined, in which case no video will be shown.
+     * @returns The decoding result.
      *
-     * @return The decoding result.
+     * @memberOf BrowserCodeReader
+     *
+     * @deprecated Use `decodeOnceFromVideoDevice` instead.
      */
-    public async decodeFromInputVideoDevice(
-        deviceId?: string,
-        videoElement?: string | HTMLVideoElement,
-    ): Promise<Result> {
+    public async decodeFromInputVideoDevice(deviceId?: string, videoSource?: string | HTMLVideoElement): Promise<Result> {
+        return await this.decodeOnceFromVideoDevice(deviceId, videoSource);
+    }
+
+    /**
+     * In one attempt, tries to decode the barcode from the device specified by deviceId while showing the video in the specified video element.
+     *
+     * @param deviceId the id of one of the devices obtained after calling getVideoInputDevices. Can be undefined, in this case it will decode from one of the available devices, preffering the main camera (environment facing) if available.
+     * @param video the video element in page where to show the video while decoding. Can be either an element id or directly an HTMLVideoElement. Can be undefined, in which case no video will be shown.
+     * @returns The decoding result.
+     *
+     * @memberOf BrowserCodeReader
+     */
+    public async decodeOnceFromVideoDevice(deviceId?: string, videoSource?: string | HTMLVideoElement): Promise<Result> {
 
         this.reset();
 
-        this.prepareVideoElement(videoElement);
+        let videoConstraints: MediaTrackConstraints;
 
-        let constraints: MediaStreamConstraints;
-
-        if (deviceId) {
-            constraints = {
-                video: { facingMode: 'environment' },
-            };
+        if (!deviceId) {
+            videoConstraints = { facingMode: 'environment' };
         } else {
-            constraints = {
-                video: { deviceId: { exact: deviceId } },
-            };
+            videoConstraints = { deviceId: { exact: deviceId } };
         }
 
-        const stream: MediaStream = await navigator.mediaDevices.getUserMedia(constraints);
+        const constraints: MediaStreamConstraints = { video: videoConstraints };
 
-        this.stream = stream;
-        this.videoElement.srcObject = stream;
-
-        return new Promise<Result>((resolve, reject) => {
-
-            this.videoPlayingEventListener = () => {
-                this.decodeOnceWithDelay(resolve, reject);
-            };
-
-            this.videoElement.addEventListener('playing', this.videoPlayingEventListener);
-            this.videoElement.play();
-        });
+        return await this.decodeOnceFromConstraints(constraints, videoSource);
     }
 
     /**
-     * Decodes a barcode form a video url.
+     * In one attempt, tries to decode the barcode from a stream obtained from the given constraints while showing the video in the specified video element.
      *
-     * @param videoUrl The video url to decode from, required.
-     * @param videoElement The video element where to play the video while decoding.
-     *  Can be undefined in which case no video is shown.
+     * @param constraints the media stream constraints to get s valid media stream to decode from
+     * @param video the video element in page where to show the video while decoding. Can be either an element id or directly an HTMLVideoElement. Can be undefined, in which case no video will be shown.
+     * @returns The decoding result.
      *
-     * @return The decoding result.
+     * @memberOf BrowserCodeReader
      */
-    public decodeFromVideoSource(videoUrl: string, videoElement?: string | HTMLVideoElement): Promise<Result> {
+    public async decodeOnceFromConstraints(constraints: MediaStreamConstraints, videoSource?: string | HTMLVideoElement): Promise<Result> {
+
+        const stream = await navigator.mediaDevices.getUserMedia(constraints);
+
+        return await this.decodeOnceFromStream(stream, videoSource);
+    }
+
+    /**
+     * In one attempt, tries to decode the barcode from a stream obtained from the given constraints while showing the video in the specified video element.
+     *
+     * @param {MediaStream} [constraints] the media stream constraints to get s valid media stream to decode from
+     * @param {string|HTMLVideoElement} [video] the video element in page where to show the video while decoding. Can be either an element id or directly an HTMLVideoElement. Can be undefined, in which case no video will be shown.
+     * @returns {Promise<Result>} The decoding result.
+     *
+     * @memberOf BrowserCodeReader
+     */
+    public async decodeOnceFromStream(stream: MediaStream, videoSource?: string | HTMLVideoElement): Promise<Result> {
 
         this.reset();
 
-        this.prepareVideoElement(videoElement);
+        const video = await this.attachStreamToVideo(stream, videoSource);
+        const result = await this.decodeOnce(video);
 
-        const me = this;
-
-        return new Promise<Result>((resolve, reject) => {
-            me.videoPlayEndedEventListener = () => {
-                me.stop();
-                reject(new NotFoundException());
-            };
-
-            if (!me.videoElement) {
-                throw new Error('The video element is not defined!');
-            }
-
-            me.videoElement.addEventListener('ended', me.videoPlayEndedEventListener);
-
-            me.videoPlayingEventListener = () => {
-                me.decodeOnceWithDelay(resolve, reject);
-            };
-
-            me.videoElement.addEventListener('playing', me.videoPlayingEventListener);
-
-            me.videoElement.setAttribute('autoplay', 'true');
-            me.videoElement.setAttribute('src', videoUrl);
-        });
+        return result;
     }
 
     /**
-     * Decodes the barcode from an image.
+     * Continuously decodes the barcode from the device specified by device while showing the video in the specified video element.
      *
-     * @param imageElement The image element that can be either an element id or the element itself.
-     *  Can be undefined in which case the decoding will be done from the imageUrl parameter.
-     * @param imageUrl
+     * @param {string|null} [deviceId] the id of one of the devices obtained after calling getVideoInputDevices. Can be undefined, in this case it will decode from one of the available devices, preffering the main camera (environment facing) if available.
+     * @param {string|HTMLVideoElement|null} [video] the video element in page where to show the video while decoding. Can be either an element id or directly an HTMLVideoElement. Can be undefined, in which case no video will be shown.
+     * @returns {Promise<void>}
      *
-     * @return The decoding result.
+     * @memberOf BrowserCodeReader
+     *
+     * @deprecated Use `decodeFromVideoDevice` instead.
      */
-    public decodeFromImage(imageElement?: string | HTMLImageElement, imageUrl?: string): Promise<Result> {
+    public async decodeFromInputVideoDeviceContinuously(deviceId: string | null, videoSource: string | HTMLVideoElement | null, callbackFn: DecodeContinuouslyCallback): Promise<void> {
+        return await this.decodeFromVideoDevice(deviceId, videoSource, callbackFn);
+    }
+
+    /**
+     * Continuously tries to decode the barcode from the device specified by device while showing the video in the specified video element.
+     *
+     * @param {string|null} [deviceId] the id of one of the devices obtained after calling getVideoInputDevices. Can be undefined, in this case it will decode from one of the available devices, preffering the main camera (environment facing) if available.
+     * @param {string|HTMLVideoElement|null} [video] the video element in page where to show the video while decoding. Can be either an element id or directly an HTMLVideoElement. Can be undefined, in which case no video will be shown.
+     * @returns {Promise<void>}
+     *
+     * @memberOf BrowserCodeReader
+     */
+    public async decodeFromVideoDevice(deviceId: string | null, videoSource: string | HTMLVideoElement | null, callbackFn: DecodeContinuouslyCallback): Promise<void> {
+
+        let videoConstraints: MediaTrackConstraints;
+
+        if (!deviceId) {
+            videoConstraints = { facingMode: 'environment' };
+        } else {
+            videoConstraints = { deviceId: { exact: deviceId } };
+        }
+
+        const constraints: MediaStreamConstraints = { video: videoConstraints };
+
+        return await this.decodeFromConstraints(constraints, videoSource, callbackFn);
+    }
+
+    /**
+     * Continuously tries to decode the barcode from a stream obtained from the given constraints while showing the video in the specified video element.
+     *
+     * @param {MediaStream} [constraints] the media stream constraints to get s valid media stream to decode from
+     * @param {string|HTMLVideoElement} [video] the video element in page where to show the video while decoding. Can be either an element id or directly an HTMLVideoElement. Can be undefined, in which case no video will be shown.
+     * @returns {Promise<Result>} The decoding result.
+     *
+     * @memberOf BrowserCodeReader
+     */
+    public async decodeFromConstraints(constraints: MediaStreamConstraints, videoSource: string | HTMLVideoElement, callbackFn: DecodeContinuouslyCallback): Promise<void> {
+
+        const stream = await navigator.mediaDevices.getUserMedia(constraints);
+
+        return await this.decodeFromStream(stream, videoSource, callbackFn);
+    }
+
+    /**
+     * In one attempt, tries to decode the barcode from a stream obtained from the given constraints while showing the video in the specified video element.
+     *
+     * @param {MediaStream} [constraints] the media stream constraints to get s valid media stream to decode from
+     * @param {string|HTMLVideoElement} [video] the video element in page where to show the video while decoding. Can be either an element id or directly an HTMLVideoElement. Can be undefined, in which case no video will be shown.
+     * @returns {Promise<Result>} The decoding result.
+     *
+     * @memberOf BrowserCodeReader
+     */
+    public async decodeFromStream(stream: MediaStream, videoSource: string | HTMLVideoElement, callbackFn: DecodeContinuouslyCallback) {
 
         this.reset();
 
-        if (!imageElement && !imageUrl) {
-            throw new ArgumentException('either imageElement with a src set or an url must be provided');
-        }
+        const video = await this.attachStreamToVideo(stream, videoSource);
 
-        this.prepareImageElement(imageElement);
-
-        return new Promise<Result>((resolve, reject) => {
-
-            if (!this.imageElement || !imageUrl) {
-                throw new ArgumentException('imageElement with a src set or an url must be provided');
-            }
-
-            if (undefined !== imageUrl) {
-                this.imageLoadedEventListener = () => {
-                    this.decodeOnce(resolve, reject, false, true);
-                };
-
-                this.imageElement.addEventListener('load', this.imageLoadedEventListener);
-
-                this.imageElement.src = imageUrl;
-
-            } else if (this.isImageLoaded(this.imageElement)) {
-                this.decodeOnce(resolve, reject, false, true);
-            } else {
-                throw new ArgumentException(`either src or a loaded img should be provided`);
-            }
-        });
+        return await this.decodeContinuously(video, callbackFn);
     }
 
     /**
-     * Resets the code reader to the initial state. Cancels any ongoing barcode scanning from video or camera.
+     * Breaks the decoding loop.
      */
-    public reset() {
-
-        this.stop();
-
-        if (undefined !== this.videoPlayEndedEventListener && undefined !== this.videoElement) {
-            this.videoElement.removeEventListener('ended', this.videoPlayEndedEventListener);
-        }
-
-        if (undefined !== this.videoPlayingEventListener && undefined !== this.videoElement) {
-            this.videoElement.removeEventListener('playing', this.videoPlayingEventListener);
-        }
-
-        if (undefined !== this.videoElement) {
-            this.videoElement.srcObject = null;
-            this.videoElement.removeAttribute('src');
-            delete this.videoElement;
-        }
-
-        if (undefined !== this.videoPlayEndedEventListener && undefined !== this.imageElement) {
-            this.imageElement.removeEventListener('load', this.imageLoadedEventListener);
-        }
-
-        if (undefined !== this.imageElement) {
-            delete this.imageElement.src;
-            this.imageElement.removeAttribute('src');
-            delete this.imageElement;
-        }
-
-        delete this.canvasElementContext;
-        delete this.canvasElement;
+    public stopAsyncDecode() {
+        this._stopAsyncDecode = true;
     }
 
     /**
-     * This will remain protected, so who extends this class can customize this method.
+     * Breaks the decoding loop.
      */
-    protected drawImageOnCanvas(
-        canvasElementContext: CanvasRenderingContext2D,
-        srcElement: HTMLVideoElement | HTMLImageElement,
-    ) {
-        canvasElementContext.drawImage(srcElement, 0, 0);
+    public stopContinuousDecode() {
+        this._stopContinuousDecode = true;
     }
 
-    protected readerDecode(binaryBitmap: BinaryBitmap): Result {
-        return this.reader.decode(binaryBitmap, this.hints);
+    /**
+     * Checks if the given video element is currently playing.
+     */
+    public isVideoPlaying(video: HTMLVideoElement): boolean {
+        return video.currentTime > 0 && !video.paused && !video.ended && video.readyState > 2;
     }
 
-    private prepareVideoElement(videoElement?: string | HTMLVideoElement) {
+    /**
+     * Just tries to play the video and logs any errors.
+     * The play call is only made is the video is not already playing.
+     */
+    public async tryPlayVideo(videoElement: HTMLVideoElement): Promise<void> {
 
-        if (undefined === videoElement) {
-
-            this.videoElement = document.createElement('video');
-            this.videoElement.width = 640;
-            this.videoElement.height = 480;
-
-        } else if (typeof videoElement === 'string') {
-
-            this.videoElement = this.getMediaElement(videoElement, 'video') as HTMLVideoElement;
-
-        } else {
-
-            this.videoElement = videoElement;
-
+        if (this.isVideoPlaying(videoElement)) {
+            console.warn('Trying to play video that is already playing.');
+            return;
         }
 
-        // Needed for iOS 11
-        this.videoElement.setAttribute('autoplay', 'true');
-        this.videoElement.setAttribute('muted', 'true');
-        this.videoElement.setAttribute('playsinline', 'true');
-        this.videoElement.setAttribute('autofocus', 'true');
-    }
-
-    private prepareImageElement(imageElement?: string | HTMLImageElement) {
-        if (!imageElement) {
-
-            this.imageElement = document.createElement('img');
-            this.imageElement.width = 200;
-            this.imageElement.height = 200;
-
-        } else if (typeof imageElement === 'string') {
-
-            this.imageElement = this.getMediaElement(imageElement, 'img') as HTMLImageElement;
-
-        } else {
-
-            this.imageElement = imageElement;
-
+        try {
+            await videoElement.play();
+        } catch {
+            console.warn('It was not possible to play the video.');
         }
     }
 
-    private getMediaElement(mediaElementId: string, type: string) {
+    /**
+     * Searches and validates a media element.
+     */
+    public getMediaElement(mediaElementId: string, type: string): HTMLVisualMediaElement {
 
         const mediaElement = document.getElementById(mediaElementId);
 
@@ -318,11 +410,190 @@ export class BrowserCodeReader {
             throw new ArgumentException(`element with id '${mediaElementId}' must be an ${type} element`);
         }
 
-        return mediaElement;
+        return  mediaElement as HTMLVisualMediaElement;
     }
 
-    private isImageLoaded(img: HTMLImageElement) {
+    /**
+     * Decodes the barcode from an image.
+     *
+     * @param {(string|HTMLImageElement)} [source] The image element that can be either an element id or the element itself. Can be undefined in which case the decoding will be done from the imageUrl parameter.
+     * @param {string} [url]
+     * @returns {Promise<Result>} The decoding result.
+     *
+     * @memberOf BrowserCodeReader
+     */
+    public decodeFromImage(source?: string | HTMLImageElement, url?: string): Promise<Result> {
 
+        if (!source && !url) {
+            throw new ArgumentException('either imageElement with a src set or an url must be provided');
+        }
+
+        if (url && !source) {
+            return this.decodeFromImageUrl(url);
+        }
+
+        return this.decodeFromImageElement(source);
+    }
+
+    /**
+     * Decodes the barcode from a video.
+     *
+     * @param {(string|HTMLImageElement)} [source] The image element that can be either an element id or the element itself. Can be undefined in which case the decoding will be done from the imageUrl parameter.
+     * @param {string} [url]
+     * @returns {Promise<Result>} The decoding result.
+     *
+     * @memberOf BrowserCodeReader
+     */
+    public decodeFromVideo(source?: string | HTMLVideoElement, url?: string): Promise<Result> {
+
+        if (!source && !url) {
+            throw new ArgumentException('Either an element with a src set or an URL must be provided');
+        }
+
+        if (url && !source) {
+            return this.decodeFromVideoUrl(url);
+        }
+
+        return this.decodeFromVideoElement(source);
+    }
+
+    /**
+     * Decodes continuously the barcode from a video.
+     *
+     * @param {(string|HTMLImageElement)} [source] The image element that can be either an element id or the element itself. Can be undefined in which case the decoding will be done from the imageUrl parameter.
+     * @param {string} [url]
+     * @returns {Promise<Result>} The decoding result.
+     *
+     * @memberOf BrowserCodeReader
+     *
+     * @experimental
+     */
+    public decodeFromVideoContinuously(source: string | HTMLVideoElement | null, url: string | null, callbackFn: DecodeContinuouslyCallback): Promise<void> {
+
+        if (undefined === source && undefined === url) {
+            throw new ArgumentException('Either an element with a src set or an URL must be provided');
+        }
+
+        if (url && !source) {
+            return this.decodeFromVideoUrlContinuously(url, callbackFn);
+        }
+
+        return this.decodeFromVideoElementContinuously(source, callbackFn);
+    }
+
+    /**
+     * Decodes something from an image HTML element.
+     */
+    public decodeFromImageElement(source: string | HTMLImageElement): Promise<Result> {
+
+        if (!source) {
+            throw new ArgumentException('An image element must be provided.');
+        }
+
+        this.reset();
+
+        const element = this.prepareImageElement(source);
+
+        this.imageElement = element;
+
+        let task: Promise<Result>;
+
+        if (this.isImageLoaded(element)) {
+            task = this.decodeOnce(element, false, true);
+        } else {
+            task = this._decodeOnLoadImage(element);
+        }
+
+        return task;
+    }
+
+    /**
+     * Decodes something from an image HTML element.
+     */
+    public decodeFromVideoElement(source: string | HTMLVideoElement): Promise<Result> {
+
+        const element = this._decodeFromVideoElementSetup(source);
+
+        return this._decodeOnLoadVideo(element);
+    }
+
+    /**
+     * Decodes something from an image HTML element.
+     */
+    public decodeFromVideoElementContinuously(source: string | HTMLVideoElement, callbackFn: DecodeContinuouslyCallback): Promise<void> {
+
+        const element = this._decodeFromVideoElementSetup(source);
+
+        return this._decodeOnLoadVideoContinuously(element, callbackFn);
+    }
+
+    /**
+     * Decodes an image from a URL.
+     */
+    public decodeFromImageUrl(url?: string): Promise<Result> {
+
+        if (!url) {
+            throw new ArgumentException('An URL must be provided.');
+        }
+
+        this.reset();
+
+        const element = this.prepareImageElement();
+
+        this.imageElement = element;
+
+        const decodeTask = this._decodeOnLoadImage(element);
+
+        element.src = url;
+
+        return decodeTask;
+    }
+
+    /**
+     * Decodes an image from a URL.
+     */
+    public decodeFromVideoUrl(url: string): Promise<Result> {
+
+        if (!url) {
+            throw new ArgumentException('An URL must be provided.');
+        }
+
+        this.reset();
+
+        // creates a new element
+        const element = this.prepareVideoElement();
+
+        const decodeTask = this.decodeFromVideoElement(element);
+
+        element.src = url;
+
+        return decodeTask;
+    }
+
+    /**
+     * Decodes an image from a URL.
+     *
+     * @experimental
+     */
+    public decodeFromVideoUrlContinuously(url: string, callbackFn: DecodeContinuouslyCallback): Promise<void> {
+
+        if (!url) {
+            throw new ArgumentException('An URL must be provided.');
+        }
+
+        this.reset();
+
+        // creates a new element
+        const element = this.prepareVideoElement();
+
+        const decodeTask = this.decodeFromVideoElementContinuously(element, callbackFn);
+
+        element.src = url;
+
+        return decodeTask;
+    }
+
+    public isImageLoaded(img: HTMLImageElement) {
         // During the onload event, IE correctly identifies any images that
         // weren’t downloaded as not complete. Others should too. Gecko-based
         // browsers act like NS4 in that they report this incorrectly.
@@ -342,85 +613,444 @@ export class BrowserCodeReader {
         return true;
     }
 
-    private decodeOnceWithDelay(resolve: (result: Result) => any, reject: (error: any) => any): void {
+    public prepareImageElement(imageSource?: HTMLImageElement | string): HTMLImageElement {
 
-        const handler = this.decodeOnce.bind(this, resolve, reject);
-        const timeout = this.timeBetweenScansMillis;
+        let imageElement: HTMLImageElement;
 
-        this.timeoutHandler = window.setTimeout(handler, timeout);
-    }
-
-    private decodeOnce(
-        resolve: (result: Result) => any,
-        reject: (error: any) => any,
-        retryIfNotFound: boolean = true,
-        retryIfChecksumOrFormatError: boolean = true,
-    ): void {
-
-        if (undefined === this.canvasElementContext) {
-            this.prepareCaptureCanvas();
+        if (typeof imageSource === 'undefined') {
+            imageElement = document.createElement('img');
+            imageElement.width = 200;
+            imageElement.height = 200;
         }
 
-        this.drawImageOnCanvas(this.canvasElementContext, this.videoElement || this.imageElement);
+        if (typeof imageSource === 'string') {
+            imageElement =  this.getMediaElement(imageSource, 'img') as HTMLImageElement;
+        }
 
-        const luminanceSource = new HTMLCanvasElementLuminanceSource(this.canvasElement);
-        const binaryBitmap = new BinaryBitmap(new HybridBinarizer(luminanceSource));
+        if (imageSource instanceof HTMLImageElement) {
+            imageElement = imageSource;
+        }
 
-        try {
-            const result = this.readerDecode(binaryBitmap);
-            resolve(result);
-        } catch (re) {
-            if (retryIfNotFound && re instanceof NotFoundException) {
-                // Not found, trying again
-                this.decodeOnceWithDelay(resolve, reject);
-            } else if (retryIfChecksumOrFormatError && (
-                re instanceof ChecksumException
-                || re instanceof FormatException
-            )) {
-                // checksum or format error, trying again
-                this.decodeOnceWithDelay(resolve, reject);
-            } else {
-                reject(re);
+        return imageElement;
+    }
+
+    /**
+     * Sets a HTMLVideoElement for scanning or creates a new one.
+     *
+     * @param videoSource The HTMLVideoElement to be set.
+     */
+    public prepareVideoElement(videoSource?: HTMLVideoElement | string): HTMLVideoElement {
+
+        let videoElement: HTMLVideoElement;
+
+        if (!videoSource && typeof document !== 'undefined') {
+            videoElement = document.createElement('video');
+            videoElement.width = 200;
+            videoElement.height = 200;
+        }
+
+        if (typeof videoSource === 'string') {
+            videoElement =  this.getMediaElement(videoSource, 'video') as HTMLVideoElement;
+        }
+
+        if (videoSource instanceof HTMLVideoElement) {
+            videoElement = videoSource;
+        }
+
+        // Needed for iOS 11
+        videoElement.setAttribute('autoplay', 'true');
+        videoElement.setAttribute('muted', 'true');
+        videoElement.setAttribute('playsinline', 'true');
+
+        return videoElement;
+    }
+
+    /**
+     * Tries to decode from the video input until it finds some value.
+     */
+    public decodeOnce(element: HTMLVisualMediaElement, retryIfNotFound = true, retryIfChecksumOrFormatError = true): Promise<Result> {
+
+        this._stopAsyncDecode = false;
+
+        const loop = (resolve: (value?: Result | PromiseLike<Result>) => void, reject: (reason?: any) => void) => {
+
+            if (this._stopAsyncDecode) {
+                reject(new NotFoundException('Video stream has ended before any code could be detected.'));
+                this._stopAsyncDecode = undefined;
+                return;
             }
-        }
+
+            try {
+                const result = this.decode(element);
+                resolve(result);
+            } catch (e) {
+
+                const ifNotFound = retryIfNotFound && e instanceof NotFoundException;
+                const isChecksumOrFormatError = e instanceof ChecksumException || e instanceof FormatException;
+                const ifChecksumOrFormat = isChecksumOrFormatError && retryIfChecksumOrFormatError;
+
+                if (ifNotFound || ifChecksumOrFormat) {
+                    // trying again
+                    return setTimeout(loop, this._timeBetweenDecodingAttempts, resolve, reject);
+                }
+
+                reject(e);
+            }
+        };
+
+        return new Promise((resolve, reject) => loop(resolve, reject));
     }
 
-    private prepareCaptureCanvas() {
+    /**
+     * Continuously decodes from video input.
+     */
+    public decodeContinuously(element: HTMLVideoElement, callbackFn: DecodeContinuouslyCallback): void {
+
+        this._stopContinuousDecode = false;
+
+        const loop = () => {
+
+            if (this._stopContinuousDecode) {
+                this._stopContinuousDecode = undefined;
+                return;
+            }
+
+            try {
+                const result = this.decode(element);
+                callbackFn(result, null);
+                setTimeout(loop, this.timeBetweenScansMillis);
+            } catch (e) {
+
+                callbackFn(null, e);
+
+                const isChecksumOrFormatError = e instanceof ChecksumException || e instanceof FormatException;
+                const isNotFound = e instanceof NotFoundException;
+
+                if (isChecksumOrFormatError || isNotFound) {
+                    // trying again
+                    setTimeout(loop, this._timeBetweenDecodingAttempts);
+                }
+
+            }
+        };
+
+        loop();
+    }
+
+    /**
+     * Gets the BinaryBitmap for ya! (and decodes it)
+     */
+    public decode(element: HTMLVisualMediaElement): Result {
+
+        // get binary bitmap for decode function
+        const binaryBitmap = this.createBinaryBitmap(element);
+
+        return this.decodeBitmap(binaryBitmap);
+    }
+
+    /**
+     * Creates a binaryBitmap based in some image source.
+     *
+     * @param mediaElement HTML element containing drawable image source.
+     */
+    public createBinaryBitmap(mediaElement: HTMLVisualMediaElement): BinaryBitmap {
+
+        const ctx = this.getCaptureCanvasContext(mediaElement);
+
+        this.drawImageOnCanvas(ctx, mediaElement);
+
+        const canvas = this.getCaptureCanvas(mediaElement);
+
+        const luminanceSource = new HTMLCanvasElementLuminanceSource(canvas);
+        const hybridBinarizer = new HybridBinarizer(luminanceSource);
+
+        return new BinaryBitmap(hybridBinarizer);
+    }
+
+    /**
+     * Ovewriting this allows you to manipulate the snapshot image in anyway you want before decode.
+     */
+    public drawImageOnCanvas(canvasElementContext: CanvasRenderingContext2D, srcElement: HTMLVisualMediaElement) {
+        canvasElementContext.drawImage(srcElement, 0, 0);
+    }
+
+    /**
+     * Call the encapsulated readers decode
+     */
+    public decodeBitmap(binaryBitmap: BinaryBitmap): Result {
+        return this.reader.decode(binaryBitmap, this._hints);
+    }
+
+    /**
+     * 🖌 Prepares the canvas for capture and scan frames.
+     */
+    public createCaptureCanvas(mediaElement?: HTMLVisualMediaElement): HTMLCanvasElement {
+
+        if (typeof document === 'undefined') {
+            this._destroyCaptureCanvas();
+            return null;
+        }
 
         const canvasElement = document.createElement('canvas');
 
-        let width;
-        let height;
+        let width: number;
+        let height: number;
 
-        if (undefined !== this.videoElement) {
-            width = this.videoElement.videoWidth;
-            height = this.videoElement.videoHeight;
-        } else {
-            if (this.imageElement) {
-                width = this.imageElement.naturalWidth || this.imageElement.width;
-                height = this.imageElement.naturalHeight || this.imageElement.height;
+        if (typeof mediaElement !== 'undefined') {
+            if (mediaElement instanceof HTMLVideoElement) {
+                width = mediaElement.videoWidth;
+                height = mediaElement.videoHeight;
+            } else if (mediaElement instanceof HTMLImageElement) {
+                width = mediaElement.naturalWidth || mediaElement.width;
+                height = mediaElement.naturalHeight || mediaElement.height;
             }
         }
 
-        canvasElement.style.width = `${width}px`;
-        canvasElement.style.height = `${height}px`;
-        canvasElement.width = width || 0;
-        canvasElement.height = height || 0;
+        canvasElement.style.width = width + 'px';
+        canvasElement.style.height = height + 'px';
+        canvasElement.width = width;
+        canvasElement.height = height;
 
-        this.canvasElement = canvasElement;
-        this.canvasElementContext = canvasElement.getContext('2d') as CanvasRenderingContext2D;
-
-        // this.videoElement.parentElement.appendChild(this.canvasElement)
+        return canvasElement;
     }
 
-    private stop() {
-        if (this.timeoutHandler) {
-            window.clearTimeout(this.timeoutHandler);
-            this.timeoutHandler = undefined;
+    /**
+     * Resets the code reader to the initial state. Cancels any ongoing barcode scanning from video or camera.
+     *
+     * @memberOf BrowserCodeReader
+     */
+    public reset() {
+
+        // stops the camera, preview and scan 🔴
+
+        this.stopStreams();
+
+        // clean and forget about HTML elements
+
+        this._destroyVideoElement();
+        this._destroyImageElement();
+        this._destroyCaptureCanvas();
+    }
+
+    /**
+     * Defines what the videoElement src will be.
+     *
+     * @param videoElement
+     * @param stream
+     */
+    public addVideoSource(videoElement: HTMLVideoElement, stream: MediaStream): void {
+        // Older browsers may not have `srcObject`
+        try {
+            // @note Throws Exception if interrupted by a new loaded request
+            videoElement.srcObject = stream;
+        } catch (err) {
+            // @note Avoid using this in new browsers, as it is going away.
+            videoElement.src = URL.createObjectURL(stream);
         }
+    }
+
+    /**
+     * Sets the new stream and request a new decoding-with-delay.
+     *
+     * @param stream The stream to be shown in the video element.
+     * @param decodeFn A callback for the decode method.
+     */
+    protected async attachStreamToVideo(stream: MediaStream, videoSource: string | HTMLVideoElement): Promise<HTMLVideoElement> {
+
+        const videoElement = this.prepareVideoElement(videoSource);
+
+        this.addVideoSource(videoElement, stream);
+
+        this.videoElement = videoElement;
+        this.stream = stream;
+
+        await this.playVideoOnLoadAsync(videoElement);
+
+        return videoElement;
+    }
+
+    /**
+     *
+     * @param videoElement
+     */
+    protected playVideoOnLoadAsync(videoElement: HTMLVideoElement): Promise<void> {
+        return new Promise((resolve, reject) => this.playVideoOnLoad(videoElement, () => resolve()));
+    }
+
+    /**
+     * Binds listeners and callbacks to the videoElement.
+     *
+     * @param element
+     * @param callbackFn
+     */
+    protected playVideoOnLoad(element: HTMLVideoElement, callbackFn: EventListener): void {
+
+        this.videoEndedListener = () => this.stopStreams();
+        this.videoCanPlayListener = () => this.tryPlayVideo(element);
+
+        element.addEventListener('ended', this.videoEndedListener);
+        element.addEventListener('canplay', this.videoCanPlayListener);
+        element.addEventListener('playing', callbackFn);
+
+        // if canplay was already fired, we won't know when to play, so just give it a try
+        this.tryPlayVideo(element);
+    }
+
+    /**
+     *
+     */
+    protected getCaptureCanvasContext(mediaElement?: HTMLVisualMediaElement) {
+
+        if (!this.captureCanvasContext) {
+            const elem = this.getCaptureCanvas(mediaElement);
+            const ctx = elem.getContext('2d');
+            this.captureCanvasContext = ctx;
+        }
+
+        return this.captureCanvasContext;
+    }
+
+    /**
+     *
+     */
+    protected getCaptureCanvas(mediaElement?: HTMLVisualMediaElement): HTMLCanvasElement {
+
+        if (!this.captureCanvas) {
+            const elem = this.createCaptureCanvas(mediaElement);
+            this.captureCanvas = elem;
+        }
+
+        return this.captureCanvas;
+    }
+
+    /**
+     * Stops the continuous scan and cleans the stream.
+     */
+    protected stopStreams(): void {
         if (this.stream) {
-            this.stream.getTracks()[0].stop();
+            this.stream.getVideoTracks().forEach((t) => t.stop());
             this.stream = undefined;
         }
+        if (this._stopAsyncDecode === false) {
+            this.stopAsyncDecode();
+        }
+        if (this._stopContinuousDecode === false) {
+            this.stopContinuousDecode();
+        }
+    }
+
+    /**
+     * Sets up the video source so it can be decoded when loaded.
+     *
+     * @param source The video source element.
+     */
+    private _decodeFromVideoElementSetup(source: string | HTMLVideoElement) {
+
+        if (!source) {
+            throw new ArgumentException('A video element must be provided.');
+        }
+
+        this.reset();
+
+        const element = this.prepareVideoElement(source);
+
+        // defines the video element before starts decoding
+        this.videoElement = element;
+
+        return element;
+    }
+
+    private _decodeOnLoadImage(element: HTMLImageElement): Promise<Result> {
+        return new Promise((resolve, reject) => {
+            this.imageLoadedListener = () => this.decodeOnce(element, false, true).then(resolve, reject);
+            element.addEventListener('load', this.imageLoadedListener);
+        });
+    }
+
+    private async _decodeOnLoadVideo(videoElement: HTMLVideoElement): Promise<Result> {
+        // plays the video
+        await this.playVideoOnLoadAsync(videoElement);
+        // starts decoding after played the video
+        return await this.decodeOnce(videoElement);
+    }
+
+    private async _decodeOnLoadVideoContinuously(videoElement: HTMLVideoElement, callbackFn: DecodeContinuouslyCallback): Promise<void> {
+        // plays the video
+        await this.playVideoOnLoadAsync(videoElement);
+        // starts decoding after played the video
+        this.decodeContinuously(videoElement, callbackFn);
+    }
+
+    private _destroyVideoElement(): void {
+
+        if (!this.videoElement) {
+            return;
+        }
+
+        // first gives freedon to the element 🕊
+
+        if (typeof this.videoEndedListener !== 'undefined') {
+            this.videoElement.removeEventListener('ended', this.videoEndedListener);
+        }
+
+        if (typeof this.videoPlayingEventListener !== 'undefined') {
+            this.videoElement.removeEventListener('playing', this.videoPlayingEventListener);
+        }
+
+        if (typeof this.videoCanPlayListener !== 'undefined') {
+            this.videoElement.removeEventListener('loadedmetadata', this.videoCanPlayListener);
+        }
+
+        // then forgets about that element 😢
+
+        this.cleanVideoSource(this.videoElement);
+
+        this.videoElement = undefined;
+    }
+
+    private _destroyImageElement(): void {
+
+        if (!this.imageElement) {
+            return;
+        }
+
+        // first gives freedon to the element 🕊
+
+        if (undefined !== this.imageLoadedListener) {
+            this.imageElement.removeEventListener('load', this.imageLoadedListener);
+        }
+
+        // then forget about that element 😢
+
+        this.imageElement.src = undefined;
+        this.imageElement.removeAttribute('src');
+        this.imageElement = undefined;
+    }
+
+    /**
+     * Cleans canvas references 🖌
+     */
+    private _destroyCaptureCanvas(): void {
+
+        // then forget about that element 😢
+
+        this.captureCanvasContext = undefined;
+        this.captureCanvas = undefined;
+    }
+
+    /**
+     * Unbinds a HTML video src property.
+     *
+     * @param videoElement
+     */
+    private cleanVideoSource(videoElement: HTMLVideoElement): void {
+
+        try {
+            videoElement.srcObject = null;
+        } catch (err) {
+            videoElement.src = '';
+        }
+
+        this.videoElement.removeAttribute('src');
     }
 }
