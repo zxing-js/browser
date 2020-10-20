@@ -1,5 +1,5 @@
+import { AztecCodeReader } from '@zxing/library';
 import { BrowserCodeReader } from './BrowserCodeReader';
-import { AztecReader } from '@zxing/library';
 
 /**
  * Aztec Code reader to use from browser.
@@ -15,6 +15,6 @@ export class BrowserAztecCodeReader extends BrowserCodeReader {
      * @memberOf BrowserAztecCodeReader
      */
     public constructor(timeBetweenScansMillis: number = 500) {
-        super(new AztecReader(), timeBetweenScansMillis);
+        super(new AztecCodeReader(), timeBetweenScansMillis);
     }
 }

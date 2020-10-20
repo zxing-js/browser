@@ -1,5 +1,5 @@
+import { DecodeHintType, MultiFormatOneDReader } from '@zxing/library';
 import { BrowserCodeReader } from './BrowserCodeReader';
-import { MultiFormatOneDReader, DecodeHintType } from '@zxing/library';
 
 /**
  * Barcode reader reader to use from browser.

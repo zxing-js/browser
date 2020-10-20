@@ -10,7 +10,9 @@ export class HTMLCanvasElementLuminanceSource extends LuminanceSource {
     private static DEGREE_TO_RADIANS = Math.PI / 180;
 
     private static makeBufferFromCanvasImageData(canvas: HTMLCanvasElement): Uint8ClampedArray {
-        const imageData = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
+        const canvasCtx = canvas.getContext('2d');
+        if (!canvasCtx) { throw new Error('Couldn\'t get canvas context.'); }
+        const imageData = canvasCtx.getImageData(0, 0, canvas.width, canvas.height);
         return HTMLCanvasElementLuminanceSource.toGrayscaleBuffer(imageData.data, canvas.width, canvas.height);
     }
 
@@ -31,10 +33,7 @@ export class HTMLCanvasElementLuminanceSource extends LuminanceSource {
                 // .299R + 0.587G + 0.114B (YUV/YIQ for PAL and NTSC),
                 // (306*R) >> 10 is approximately equal to R*0.299, and so on.
                 // 0x200 >> 10 is 0.5, it implements rounding.
-                gray = (306 * pixelR +
-                    601 * pixelG +
-                    117 * pixelB +
-                    0x200) >> 10;
+                gray = (306 * pixelR + 601 * pixelG + 117 * pixelB + 0x200) >> 10;
             }
             grayscaleBuffer[j] = gray;
         }
@@ -43,7 +42,7 @@ export class HTMLCanvasElementLuminanceSource extends LuminanceSource {
 
     private buffer: Uint8ClampedArray;
 
-    private tempCanvasElement: HTMLCanvasElement = null;
+    private tempCanvasElement?: HTMLCanvasElement;
 
     public constructor(private canvas: HTMLCanvasElement) {
         super(canvas.width, canvas.height);
@@ -78,7 +77,12 @@ export class HTMLCanvasElementLuminanceSource extends LuminanceSource {
         return true;
     }
 
-    public crop(left: number /*int*/, top: number /*int*/, width: number /*int*/, height: number /*int*/): LuminanceSource {
+    public crop(
+        left: number /*int*/,
+        top: number /*int*/,
+        width: number /*int*/,
+        height: number /*int*/,
+    ): LuminanceSource {
         super.crop(left, top, width, height);
         return this;
     }
@@ -119,16 +123,23 @@ export class HTMLCanvasElementLuminanceSource extends LuminanceSource {
 
     private rotate(angle: number) {
         const tempCanvasElement = this.getTempCanvasElement();
-        const tempContext = tempCanvasElement.getContext('2d');
+        if (!tempCanvasElement) { throw new Error('Could not create a Canvas element.'); }
         const angleRadians = angle * HTMLCanvasElementLuminanceSource.DEGREE_TO_RADIANS;
 
         // Calculate and set new dimensions for temp canvas
         const width = this.canvas.width;
         const height = this.canvas.height;
-        const newWidth = Math.ceil(Math.abs(Math.cos(angleRadians)) * width + Math.abs(Math.sin(angleRadians)) * height);
-        const newHeight = Math.ceil(Math.abs(Math.sin(angleRadians)) * width + Math.abs(Math.cos(angleRadians)) * height);
+        const newWidth = Math.ceil(
+          Math.abs(Math.cos(angleRadians)) * width + Math.abs(Math.sin(angleRadians)) * height,
+        );
+        const newHeight = Math.ceil(
+          Math.abs(Math.sin(angleRadians)) * width + Math.abs(Math.cos(angleRadians)) * height,
+        );
         tempCanvasElement.width = newWidth;
         tempCanvasElement.height = newHeight;
+
+        const tempContext = tempCanvasElement.getContext('2d');
+        if (!tempContext) { throw new Error('Could not create a Convas Context element.'); }
 
         // Draw at center of temp canvas to prevent clipping of image data
         tempContext.translate(newWidth / 2, newHeight / 2);

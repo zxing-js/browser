@@ -4,10 +4,10 @@
 export class VideoInputDevice implements MediaDeviceInfo {
 
   /** @inheritdoc */
-  readonly kind = 'videoinput';
+  public readonly kind = 'videoinput';
 
   /** @inheritdoc */
-  readonly groupId: string;
+  public readonly groupId: string;
 
   /**
    * Creates an instance of VideoInputDevice.
@@ -16,15 +16,15 @@ export class VideoInputDevice implements MediaDeviceInfo {
    * @param {string} label the label of the device if available
    */
   public constructor(public deviceId: string, public label: string, groupId?: string) {
-    this.groupId = groupId || undefined;
+    this.groupId = groupId || '';
   }
 
   /** @inheritdoc */
-  toJSON() {
+  public toJSON() {
     return {
-      kind: this.kind,
-      groupId: this.groupId,
       deviceId: this.deviceId,
+      groupId: this.groupId,
+      kind: this.kind,
       label: this.label,
     };
   }
