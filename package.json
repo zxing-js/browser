@@ -34,9 +34,11 @@
     },
     "private": false,
     "main": "./cjs/index.js",
-    "module": "./esm5/index.js",
-    "typings": "./esm5/index.d.ts",
+    "module": "./es2015/index.js",
+    "typings": "./esm/index.d.ts",
     "esnext": "./esm/index.js",
+    "browser": "./umd/zxing-browser.js",
+    "browser:min": "./umd/zxing-browser.min.js",
     "scripts": {
         "clean": "yarn shx rm -rf umd esm esm5",
         "build": "yarn clean && yarn build:es2015 && yarn build:esm && yarn build:cjs && yarn build:umd && yarn build:umd:min && yarn build:copy",
@@ -55,10 +57,10 @@
         "e2e:run": "cypress run --headless --browser chrome"
     },
     "dependencies": {
-        "@zxing/library": "^0.18.0"
+        "@zxing/library": "^0.18.1"
     },
     "devDependencies": {
-        "@rollup/plugin-node-resolve": "^7.1.3",
+        "@rollup/plugin-node-resolve": "^9.0.0",
         "@types/chai": "^4.1.4",
         "chai": "^4.1.2",
         "cypress": "^5.0.0",

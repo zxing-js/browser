@@ -5,23 +5,15 @@
     "target": "es5",
     "moduleResolution": "node",
     "lib": [
-      "es7",
+      "es2020",
       "dom"
     ],
     "alwaysStrict": true,
-    "noImplicitAny": false,
+    "noImplicitAny": true,
     "sourceMap": true,
     "declaration": true,
-    "preserveConstEnums": true,
-    "downlevelIteration": true,
-    "paths": {
-      "@zxing/library": [
-        "./dist"
-      ],
-      "@zxing/library/*": [
-        "./dist/*"
-      ]
-    }
+    "preserveConstEnums": false,
+    "downlevelIteration": true
   },
   "include": [
     "src/**/*.ts"
