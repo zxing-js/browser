@@ -3,6 +3,8 @@ staging/
 autotransform/input/*
 autotransform/output/*
 node_modules/
+cypress/screenshots
+cypress/videos
 
 .DS_Store
 .idea
@@ -11,8 +13,6 @@ node_modules/
 *.iml
 
 coverage
-esm5
-umd
 typings
 docs
 dist
