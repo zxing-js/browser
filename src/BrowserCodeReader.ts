@@ -325,16 +325,6 @@ export class BrowserCodeReader {
   protected videoPlayingEventListener?: EventListener;
 
   /**
-   * This will break the loop.
-   */
-  private _stopContinuousDecode = false;
-
-  /**
-   * This will break the loop.
-   */
-  private _stopAsyncDecode = false;
-
-  /**
    * Creates an instance of BrowserCodeReader.
    * @param {Reader} reader The reader instance to decode the barcode
    * @param {number} [delayBetweenScanSuccess=500] Delay time between subsequent successful decode results.
@@ -555,20 +545,6 @@ export class BrowserCodeReader {
   }
 
   /**
-   * Breaks the decoding loop.
-   */
-  public stopAsyncDecode() {
-    this._stopAsyncDecode = true;
-  }
-
-  /**
-   * Breaks the decoding loop.
-   */
-  public stopContinuousDecode() {
-    this._stopContinuousDecode = true;
-  }
-
-  /**
    * Decodes something from an image HTML element.
    */
   public decodeFromImageElement(source: string | HTMLImageElement): Promise<Result> {
@@ -629,8 +605,6 @@ export class BrowserCodeReader {
     this.reset();
 
     const element = BrowserCodeReader.prepareImageElement();
-
-    this.imageElement = element;
 
     const decodeTask = this._decodeOnLoadImage(element);
 
@@ -892,12 +866,6 @@ export class BrowserCodeReader {
     if (this.stream) {
       this.stream.getVideoTracks().forEach((t) => t.stop());
       this.stream = undefined;
-    }
-    if (this._stopAsyncDecode === false) {
-      this.stopAsyncDecode();
-    }
-    if (this._stopContinuousDecode === false) {
-      this.stopContinuousDecode();
     }
   }
 
