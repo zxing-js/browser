@@ -820,7 +820,13 @@ export class BrowserCodeReader {
    * @param videoElement
    */
   protected playVideoOnLoadAsync(videoElement: HTMLVideoElement): Promise<void> {
-    return new Promise((resolve, reject) => this.playVideoOnLoad(videoElement, () => resolve()));
+    return new Promise((resolve, reject) => {
+      try {
+        this.playVideoOnLoad(videoElement, () => resolve());
+      } catch (ex) {
+        reject(ex);
+      }
+    });
   }
 
   /**
