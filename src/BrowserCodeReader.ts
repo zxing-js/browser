@@ -39,39 +39,6 @@ export class BrowserCodeReader {
         return !!(this.isMediaDevicesSuported && navigator.mediaDevices.enumerateDevices);
     }
 
-    /** Time between two decoding tries in milli seconds. */
-    get timeBetweenDecodingAttempts(): number {
-        return this._timeBetweenDecodingAttempts;
-    }
-
-    /**
-     * Change the time span the decoder waits between two decoding tries.
-     *
-     * @param {number} millis Time between two decoding tries in milli seconds.
-     */
-    set timeBetweenDecodingAttempts(millis: number) {
-        this._timeBetweenDecodingAttempts = millis < 0 ? 0 : millis;
-    }
-
-    /**
-     * Sets the hints.
-     */
-    set hints(hints: Map<DecodeHintType, any>) {
-        this._hints = hints || null;
-    }
-
-    /**
-     * Sets the hints.
-     */
-    get hints(): Map<DecodeHintType, any> {
-        return this._hints || new Map<DecodeHintType, any>();
-    }
-
-    /**
-     * Delay time between decode attempts made by the scanner.
-     */
-    protected _timeBetweenDecodingAttempts: number = 0;
-
     /**
      * The HTML canvas element, used to draw the video or image's frame for decoding.
      */
@@ -121,11 +88,6 @@ export class BrowserCodeReader {
     protected videoPlayingEventListener?: EventListener;
 
     /**
-     * Holds the hints the user sets for the Reader.
-     */
-    private _hints?: Map<DecodeHintType, any>;
-
-    /**
      * This will break the loop.
      */
     private _stopContinuousDecode = false;
@@ -138,19 +100,18 @@ export class BrowserCodeReader {
     /**
      * Creates an instance of BrowserCodeReader.
      * @param {Reader} reader The reader instance to decode the barcode
-     * @param {number} [timeBetweenScans=500] the time delay between subsequent successful decode tries
+     * @param {number} [delayBetweenScanSuccess=500] Delay time between subsequent successful decode results.
+     * @param hints Holds the hints the user sets for the Reader.
+     * @param {number} [delayBetweenScanAttempts=500] Delay time between decode attempts made by the scanner.
      *
      * @memberOf BrowserCodeReader
      */
     public constructor(
         protected readonly reader: Reader,
-        protected timeBetweenScans: number = 500,
-        hints?: Map<DecodeHintType, any>,
-    ) {
-        if (hints) {
-            this.hints = hints;
-        }
-    }
+        public readonly delayBetweenScanSuccess: number = 500,
+        public readonly hints?: Map<DecodeHintType, any>,
+        public readonly delayBetweenScanAttempts: number = 500,
+    ) { }
 
     /**
      * Lists all the available video input devices.
@@ -620,7 +581,7 @@ export class BrowserCodeReader {
 
                 if (ifNotFound || ifChecksumOrFormat) {
                     // trying again
-                    return setTimeout(loop, this._timeBetweenDecodingAttempts, resolve, reject);
+                    return setTimeout(loop, this.delayBetweenScanAttempts, resolve, reject);
                 }
 
                 reject(e);
@@ -647,7 +608,7 @@ export class BrowserCodeReader {
             try {
                 const result = this.decode(element);
                 callbackFn(result, undefined);
-                setTimeout(loop, this.timeBetweenScans);
+                setTimeout(loop, this.delayBetweenScanSuccess);
             } catch (e) {
 
                 callbackFn(undefined, e);
@@ -657,7 +618,7 @@ export class BrowserCodeReader {
 
                 if (isChecksumOrFormatError || isNotFound) {
                     // trying again
-                    setTimeout(loop, this._timeBetweenDecodingAttempts);
+                    setTimeout(loop, this.delayBetweenScanAttempts);
                 }
 
             }
@@ -740,7 +701,7 @@ export class BrowserCodeReader {
      * Call the encapsulated readers decode
      */
     public decodeBitmap(binaryBitmap: BinaryBitmap): Result {
-        return this.reader.decode(binaryBitmap, this._hints);
+        return this.reader.decode(binaryBitmap, this.hints);
     }
 
     /**
