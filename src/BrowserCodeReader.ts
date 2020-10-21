@@ -138,13 +138,13 @@ export class BrowserCodeReader {
     /**
      * Creates an instance of BrowserCodeReader.
      * @param {Reader} reader The reader instance to decode the barcode
-     * @param {number} [timeBetweenScansMillis=500] the time delay between subsequent successful decode tries
+     * @param {number} [timeBetweenScans=500] the time delay between subsequent successful decode tries
      *
      * @memberOf BrowserCodeReader
      */
     public constructor(
         protected readonly reader: Reader,
-        protected timeBetweenScansMillis: number = 500,
+        protected timeBetweenScans: number = 500,
         hints?: Map<DecodeHintType, any>,
     ) {
         if (hints) {
@@ -647,7 +647,7 @@ export class BrowserCodeReader {
             try {
                 const result = this.decode(element);
                 callbackFn(result, undefined);
-                setTimeout(loop, this.timeBetweenScansMillis);
+                setTimeout(loop, this.timeBetweenScans);
             } catch (e) {
 
                 callbackFn(undefined, e);
