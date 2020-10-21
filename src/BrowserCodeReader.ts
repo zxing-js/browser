@@ -40,6 +40,220 @@ export class BrowserCodeReader {
   }
 
   /**
+   * Defines what the videoElement src will be.
+   *
+   * @param videoElement
+   * @param stream
+   */
+  public static addVideoSource(videoElement: HTMLVideoElement, stream: MediaStream): void {
+    // Older browsers may not have `srcObject`
+    try {
+      // @note Throws Exception if interrupted by a new loaded request
+      videoElement.srcObject = stream;
+    } catch (err) {
+      // @note Avoid using this in new browsers, as it is going away.
+      videoElement.src = URL.createObjectURL(stream);
+    }
+  }
+
+  /**
+   * Checks if the given video element is currently playing.
+   */
+  public static isVideoPlaying(video: HTMLVideoElement): boolean {
+    return video.currentTime > 0 && !video.paused && !video.ended && video.readyState > 2;
+  }
+
+  /**
+   * Searches and validates a media element.
+   */
+  public static getMediaElement(mediaElementId: string, type: string): HTMLVisualMediaElement {
+
+    const mediaElement = document.getElementById(mediaElementId);
+
+    if (!mediaElement) {
+      throw new ArgumentException(`element with id '${mediaElementId}' not found`);
+    }
+
+    if (mediaElement.nodeName.toLowerCase() !== type.toLowerCase()) {
+      throw new ArgumentException(`element with id '${mediaElementId}' must be an ${type} element`);
+    }
+
+    return mediaElement as HTMLVisualMediaElement;
+  }
+
+  public static createVideoElement(videoThingy?: HTMLVideoElement | string): HTMLVideoElement {
+    if (!videoThingy && typeof document !== 'undefined') {
+      const videoElement = document.createElement('video');
+      videoElement.width = 200;
+      videoElement.height = 200;
+      return videoElement;
+    }
+
+    if (typeof videoThingy === 'string') {
+      return BrowserCodeReader.getMediaElement(videoThingy, 'video') as HTMLVideoElement;
+    }
+
+    if (videoThingy instanceof HTMLVideoElement) {
+      return videoThingy;
+    }
+
+    throw new Error('Couldn\'t get videoElement from videoSource!');
+  }
+
+  public static prepareImageElement(imageSource?: HTMLImageElement | string): HTMLImageElement {
+
+    let imageElement: HTMLImageElement;
+
+    if (typeof imageSource === 'undefined') {
+      imageElement = document.createElement('img');
+      imageElement.width = 200;
+      imageElement.height = 200;
+    }
+
+    if (typeof imageSource === 'string') {
+      imageElement = BrowserCodeReader.getMediaElement(imageSource, 'img') as HTMLImageElement;
+    }
+
+    if (imageSource instanceof HTMLImageElement) {
+      imageElement = imageSource;
+    }
+
+    return imageElement!!;
+  }
+
+  /**
+   * Sets a HTMLVideoElement for scanning or creates a new one.
+   *
+   * @param videoElem The HTMLVideoElement to be set.
+   */
+  public static prepareVideoElement(videoElem?: HTMLVideoElement | string): HTMLVideoElement {
+
+    const videoElement = BrowserCodeReader.createVideoElement(videoElem);
+
+    // Needed for iOS 11
+    videoElement.setAttribute('autoplay', 'true');
+    videoElement.setAttribute('muted', 'true');
+    videoElement.setAttribute('playsinline', 'true');
+
+    return videoElement;
+  }
+
+  public static isImageLoaded(img: HTMLImageElement) {
+    // During the onload event, IE correctly identifies any images that
+    // weren’t downloaded as not complete. Others should too. Gecko-based
+    // browsers act like NS4 in that they report this incorrectly.
+    if (!img.complete) {
+      return false;
+    }
+
+    // However, they do have two very useful properties: naturalWidth and
+    // naturalHeight. These give the true size of the image. If it failed
+    // to load, either of these should be zero.
+
+    if (img.naturalWidth === 0) {
+      return false;
+    }
+
+    // No other way of checking: assume it’s ok.
+    return true;
+  }
+
+  /**
+   * Creates a binaryBitmap based in a canvas.
+   *
+   * @param canvas HTML canvas element containing the image source draw.
+   */
+  public static createBinaryBitmapFromCanvas(canvas: HTMLCanvasElement) {
+
+    const luminanceSource = new HTMLCanvasElementLuminanceSource(canvas);
+    const hybridBinarizer = new HybridBinarizer(luminanceSource);
+
+    return new BinaryBitmap(hybridBinarizer);
+  }
+
+  /**
+   * Ovewriting this allows you to manipulate the snapshot image in anyway you want before decode.
+   */
+  public static drawImageOnCanvas(canvasElementContext: CanvasRenderingContext2D, srcElement: HTMLVisualMediaElement) {
+    canvasElementContext.drawImage(srcElement, 0, 0);
+  }
+
+  /**
+   * 🖌 Prepares the canvas for capture and scan frames.
+   */
+  public static createCaptureCanvas(mediaElement?: HTMLVisualMediaElement): HTMLCanvasElement {
+
+    if (typeof document === 'undefined') {
+      throw new Error('The page "Document" is undefined, make sure you\'re running in a browser.');
+    }
+
+    const canvasElement = document.createElement('canvas');
+
+    if (typeof mediaElement === 'undefined') {
+      return canvasElement;
+    }
+
+    const getDimensions = () => {
+      if (mediaElement instanceof HTMLVideoElement) {
+        const videoWidth = mediaElement.videoWidth;
+        const videoHeight = mediaElement.videoHeight;
+        return { width: videoWidth, height: videoHeight };
+      } else if (mediaElement instanceof HTMLImageElement) {
+        const imageWidth = mediaElement.naturalWidth || mediaElement.width;
+        const imageHeight = mediaElement.naturalHeight || mediaElement.height;
+        return { width: imageWidth, height: imageHeight };
+      }
+
+      throw new Error('Couldn\'t find the Source\'s dimentions!');
+    };
+
+    const { width, height } = getDimensions();
+
+    canvasElement.style.width = width + 'px';
+    canvasElement.style.height = height + 'px';
+    canvasElement.width = width;
+    canvasElement.height = height;
+
+    return canvasElement;
+  }
+
+  /**
+   * Just tries to play the video and logs any errors.
+   * The play call is only made is the video is not already playing.
+   */
+  public static async tryPlayVideo(videoElement: HTMLVideoElement): Promise<void> {
+
+    if (BrowserCodeReader.isVideoPlaying(videoElement)) {
+      console.warn('Trying to play video that is already playing.');
+      return;
+    }
+
+    try {
+      await videoElement.play();
+    } catch {
+      console.warn('It was not possible to play the video.');
+    }
+  }
+
+  /**
+   * Unbinds a HTML video src property.
+   *
+   * @param videoElement
+   */
+  private static cleanVideoSource(videoElement: HTMLVideoElement): void {
+
+    try {
+      videoElement.srcObject = null;
+    } catch (err) {
+      videoElement.src = '';
+    }
+
+    if (videoElement) {
+      videoElement.removeAttribute('src');
+    }
+  }
+
+  /**
    * The HTML canvas element, used to draw the video or image's frame for decoding.
    */
   protected captureCanvas?: HTMLCanvasElement;
@@ -330,49 +544,6 @@ export class BrowserCodeReader {
   }
 
   /**
-   * Checks if the given video element is currently playing.
-   */
-  public isVideoPlaying(video: HTMLVideoElement): boolean {
-    return video.currentTime > 0 && !video.paused && !video.ended && video.readyState > 2;
-  }
-
-  /**
-   * Just tries to play the video and logs any errors.
-   * The play call is only made is the video is not already playing.
-   */
-  public async tryPlayVideo(videoElement: HTMLVideoElement): Promise<void> {
-
-    if (this.isVideoPlaying(videoElement)) {
-      console.warn('Trying to play video that is already playing.');
-      return;
-    }
-
-    try {
-      await videoElement.play();
-    } catch {
-      console.warn('It was not possible to play the video.');
-    }
-  }
-
-  /**
-   * Searches and validates a media element.
-   */
-  public getMediaElement(mediaElementId: string, type: string): HTMLVisualMediaElement {
-
-    const mediaElement = document.getElementById(mediaElementId);
-
-    if (!mediaElement) {
-      throw new ArgumentException(`element with id '${mediaElementId}' not found`);
-    }
-
-    if (mediaElement.nodeName.toLowerCase() !== type.toLowerCase()) {
-      throw new ArgumentException(`element with id '${mediaElementId}' must be an ${type} element`);
-    }
-
-    return mediaElement as HTMLVisualMediaElement;
-  }
-
-  /**
    * Decodes something from an image HTML element.
    */
   public decodeFromImageElement(source: string | HTMLImageElement): Promise<Result> {
@@ -383,13 +554,13 @@ export class BrowserCodeReader {
 
     this.reset();
 
-    const element = this.prepareImageElement(source);
+    const element = BrowserCodeReader.prepareImageElement(source);
 
     this.imageElement = element;
 
     let task: Promise<Result>;
 
-    if (this.isImageLoaded(element)) {
+    if (BrowserCodeReader.isImageLoaded(element)) {
       task = this.decodeOnce(element, false, true);
     } else {
       task = this._decodeOnLoadImage(element);
@@ -432,7 +603,7 @@ export class BrowserCodeReader {
 
     this.reset();
 
-    const element = this.prepareImageElement();
+    const element = BrowserCodeReader.prepareImageElement();
 
     this.imageElement = element;
 
@@ -455,7 +626,7 @@ export class BrowserCodeReader {
     this.reset();
 
     // creates a new element
-    const element = this.prepareVideoElement();
+    const element = BrowserCodeReader.prepareVideoElement();
 
     const decodeTask = this.decodeFromVideoElement(element);
 
@@ -478,90 +649,13 @@ export class BrowserCodeReader {
     this.reset();
 
     // creates a new element
-    const element = this.prepareVideoElement();
+    const element = BrowserCodeReader.prepareVideoElement();
 
     const decodeTask = this.decodeFromVideoElementContinuously(element, callbackFn);
 
     element.src = url;
 
     return decodeTask;
-  }
-
-  public isImageLoaded(img: HTMLImageElement) {
-    // During the onload event, IE correctly identifies any images that
-    // weren’t downloaded as not complete. Others should too. Gecko-based
-    // browsers act like NS4 in that they report this incorrectly.
-    if (!img.complete) {
-      return false;
-    }
-
-    // However, they do have two very useful properties: naturalWidth and
-    // naturalHeight. These give the true size of the image. If it failed
-    // to load, either of these should be zero.
-
-    if (img.naturalWidth === 0) {
-      return false;
-    }
-
-    // No other way of checking: assume it’s ok.
-    return true;
-  }
-
-  public prepareImageElement(imageSource?: HTMLImageElement | string): HTMLImageElement {
-
-    let imageElement: HTMLImageElement;
-
-    if (typeof imageSource === 'undefined') {
-      imageElement = document.createElement('img');
-      imageElement.width = 200;
-      imageElement.height = 200;
-    }
-
-    if (typeof imageSource === 'string') {
-      imageElement = this.getMediaElement(imageSource, 'img') as HTMLImageElement;
-    }
-
-    if (imageSource instanceof HTMLImageElement) {
-      imageElement = imageSource;
-    }
-
-    return imageElement!!;
-  }
-
-  public createVideoElement(videoThingy?: HTMLVideoElement | string): HTMLVideoElement {
-    if (!videoThingy && typeof document !== 'undefined') {
-      const videoElement = document.createElement('video');
-      videoElement.width = 200;
-      videoElement.height = 200;
-      return videoElement;
-    }
-
-    if (typeof videoThingy === 'string') {
-      return this.getMediaElement(videoThingy, 'video') as HTMLVideoElement;
-    }
-
-    if (videoThingy instanceof HTMLVideoElement) {
-      return videoThingy;
-    }
-
-    throw new Error('Couldn\'t get videoElement from videoSource!');
-  }
-
-  /**
-   * Sets a HTMLVideoElement for scanning or creates a new one.
-   *
-   * @param videoElem The HTMLVideoElement to be set.
-   */
-  public prepareVideoElement(videoElem?: HTMLVideoElement | string): HTMLVideoElement {
-
-    const videoElement = this.createVideoElement(videoElem);
-
-    // Needed for iOS 11
-    videoElement.setAttribute('autoplay', 'true');
-    videoElement.setAttribute('muted', 'true');
-    videoElement.setAttribute('playsinline', 'true');
-
-    return videoElement;
   }
 
   /**
@@ -657,22 +751,9 @@ export class BrowserCodeReader {
    */
   public decodeFromCanvas(canvas: HTMLCanvasElement): Result {
 
-    const binaryBitmap = this.createBinaryBitmapFromCanvas(canvas);
+    const binaryBitmap = BrowserCodeReader.createBinaryBitmapFromCanvas(canvas);
 
     return this.decodeBitmap(binaryBitmap);
-  }
-
-  /**
-   * Creates a binaryBitmap based in a canvas.
-   *
-   * @param canvas HTML canvas element containing the image source draw.
-   */
-  public createBinaryBitmapFromCanvas(canvas: HTMLCanvasElement) {
-
-    const luminanceSource = new HTMLCanvasElementLuminanceSource(canvas);
-    const hybridBinarizer = new HybridBinarizer(luminanceSource);
-
-    return new BinaryBitmap(hybridBinarizer);
   }
 
   /**
@@ -684,7 +765,7 @@ export class BrowserCodeReader {
 
     const canvas = this.createCanvasFromMediaElement(mediaElement);
 
-    return this.createBinaryBitmapFromCanvas(canvas);
+    return BrowserCodeReader.createBinaryBitmapFromCanvas(canvas);
   }
 
   /**
@@ -696,7 +777,7 @@ export class BrowserCodeReader {
 
     const ctx = this.getCaptureCanvasContext(mediaElement);
 
-    this.drawImageOnCanvas(ctx, mediaElement);
+    BrowserCodeReader.drawImageOnCanvas(ctx, mediaElement);
 
     const canvas = this.getCaptureCanvas(mediaElement);
 
@@ -704,57 +785,10 @@ export class BrowserCodeReader {
   }
 
   /**
-   * Ovewriting this allows you to manipulate the snapshot image in anyway you want before decode.
-   */
-  public drawImageOnCanvas(canvasElementContext: CanvasRenderingContext2D, srcElement: HTMLVisualMediaElement) {
-    canvasElementContext.drawImage(srcElement, 0, 0);
-  }
-
-  /**
    * Call the encapsulated readers decode
    */
   public decodeBitmap(binaryBitmap: BinaryBitmap): Result {
     return this.reader.decode(binaryBitmap, this.hints);
-  }
-
-  /**
-   * 🖌 Prepares the canvas for capture and scan frames.
-   */
-  public createCaptureCanvas(mediaElement?: HTMLVisualMediaElement): HTMLCanvasElement {
-
-    if (typeof document === 'undefined') {
-      this._destroyCaptureCanvas();
-      throw new Error('The page "Document" is undefined, make sure you\'re running in a browser.');
-    }
-
-    const canvasElement = document.createElement('canvas');
-
-    if (typeof mediaElement === 'undefined') {
-      return canvasElement;
-    }
-
-    const getDimensions = () => {
-      if (mediaElement instanceof HTMLVideoElement) {
-        const width = mediaElement.videoWidth;
-        const height = mediaElement.videoHeight;
-        return { width, height };
-      } else if (mediaElement instanceof HTMLImageElement) {
-        const width = mediaElement.naturalWidth || mediaElement.width;
-        const height = mediaElement.naturalHeight || mediaElement.height;
-        return { width, height };
-      }
-
-      throw new Error('Couldn\'t find the Source\'s dimentions!');
-    };
-
-    const { width, height } = getDimensions();
-
-    canvasElement.style.width = width + 'px';
-    canvasElement.style.height = height + 'px';
-    canvasElement.width = width;
-    canvasElement.height = height;
-
-    return canvasElement;
   }
 
   /**
@@ -776,23 +810,6 @@ export class BrowserCodeReader {
   }
 
   /**
-   * Defines what the videoElement src will be.
-   *
-   * @param videoElement
-   * @param stream
-   */
-  public addVideoSource(videoElement: HTMLVideoElement, stream: MediaStream): void {
-    // Older browsers may not have `srcObject`
-    try {
-      // @note Throws Exception if interrupted by a new loaded request
-      videoElement.srcObject = stream;
-    } catch (err) {
-      // @note Avoid using this in new browsers, as it is going away.
-      videoElement.src = URL.createObjectURL(stream);
-    }
-  }
-
-  /**
    * Sets the new stream and request a new decoding-with-delay.
    *
    * @param stream The stream to be shown in the video element.
@@ -803,9 +820,9 @@ export class BrowserCodeReader {
     preview?: string | HTMLVideoElement,
   ): Promise<HTMLVideoElement> {
 
-    const videoElement = this.prepareVideoElement(preview);
+    const videoElement = BrowserCodeReader.prepareVideoElement(preview);
 
-    this.addVideoSource(videoElement, stream);
+    BrowserCodeReader.addVideoSource(videoElement, stream);
 
     this.videoElement = videoElement;
     this.stream = stream;
@@ -838,14 +855,14 @@ export class BrowserCodeReader {
   protected playVideoOnLoad(element: HTMLVideoElement, callbackFn: EventListener): void {
 
     this.videoEndedListener = () => this.stopStreams();
-    this.videoCanPlayListener = () => this.tryPlayVideo(element);
+    this.videoCanPlayListener = () => BrowserCodeReader.tryPlayVideo(element);
 
     element.addEventListener('ended', this.videoEndedListener);
     element.addEventListener('canplay', this.videoCanPlayListener);
     element.addEventListener('playing', callbackFn);
 
     // if canplay was already fired, we won't know when to play, so just give it a try
-    this.tryPlayVideo(element);
+    BrowserCodeReader.tryPlayVideo(element);
   }
 
   /**
@@ -869,7 +886,8 @@ export class BrowserCodeReader {
   protected getCaptureCanvas(mediaElement?: HTMLVisualMediaElement): HTMLCanvasElement {
 
     if (!this.captureCanvas) {
-      const elem = this.createCaptureCanvas(mediaElement);
+      this._destroyCaptureCanvas();
+      const elem = BrowserCodeReader.createCaptureCanvas(mediaElement);
       this.captureCanvas = elem;
     }
 
@@ -905,7 +923,7 @@ export class BrowserCodeReader {
 
     this.reset();
 
-    const element = this.prepareVideoElement(source);
+    const element = BrowserCodeReader.prepareVideoElement(source);
 
     // defines the video element before starts decoding
     this.videoElement = element;
@@ -939,47 +957,52 @@ export class BrowserCodeReader {
 
   private _destroyVideoElement(): void {
 
-    if (!this.videoElement) {
+    const videoElement = this.videoElement;
+
+    if (!videoElement) {
       return;
     }
 
     // first gives freedon to the element 🕊
 
     if (typeof this.videoEndedListener !== 'undefined') {
-      this.videoElement.removeEventListener('ended', this.videoEndedListener);
+      videoElement.removeEventListener('ended', this.videoEndedListener);
     }
 
     if (typeof this.videoPlayingEventListener !== 'undefined') {
-      this.videoElement.removeEventListener('playing', this.videoPlayingEventListener);
+      videoElement.removeEventListener('playing', this.videoPlayingEventListener);
     }
 
     if (typeof this.videoCanPlayListener !== 'undefined') {
-      this.videoElement.removeEventListener('loadedmetadata', this.videoCanPlayListener);
+      videoElement.removeEventListener('loadedmetadata', this.videoCanPlayListener);
     }
 
     // then forgets about that element 😢
 
-    this.cleanVideoSource(this.videoElement);
+    BrowserCodeReader.cleanVideoSource(videoElement);
 
     this.videoElement = undefined;
   }
 
   private _destroyImageElement(): void {
 
-    if (!this.imageElement) {
+    const imageElement = this.imageElement;
+
+    if (!imageElement) {
       return;
     }
 
     // first gives freedon to the element 🕊
 
     if (undefined !== this.imageLoadedListener) {
-      this.imageElement.removeEventListener('load', this.imageLoadedListener);
+      imageElement.removeEventListener('load', this.imageLoadedListener);
     }
 
     // then forget about that element 😢
 
-    this.imageElement.src = '';
-    this.imageElement.removeAttribute('src');
+    imageElement.src = '';
+    imageElement.removeAttribute('src');
+
     this.imageElement = undefined;
   }
 
@@ -992,23 +1015,5 @@ export class BrowserCodeReader {
 
     this.captureCanvasContext = undefined;
     this.captureCanvas = undefined;
-  }
-
-  /**
-   * Unbinds a HTML video src property.
-   *
-   * @param videoElement
-   */
-  private cleanVideoSource(videoElement: HTMLVideoElement): void {
-
-    try {
-      videoElement.srcObject = null;
-    } catch (err) {
-      videoElement.src = '';
-    }
-
-    if (this.videoElement) {
-      this.videoElement.removeAttribute('src');
-    }
   }
 }
