@@ -2,10 +2,10 @@
 
 context('Actions', () => {
   beforeEach(() => {
-    cy.visit('http://localhost:8080/e2e/pages/qr-camera/index.html');
+    cy.visit('http://localhost:8080/cypress/fixtures//index.html');
   });
 
-  describe('Instantiates Aztec Reader', () => {
+  describe('Instantiates Data Matrix Reader', () => {
     it('has ZXing imported into window', () => {
       cy.window().should('have.property', 'ZXingBrowser');
     });
@@ -13,7 +13,7 @@ context('Actions', () => {
       cy.window().then((win) => {
         // call whatever you want on your app's window
         // so your app methods must be exposed somehow
-        const codeReader = new win.ZXingBrowser.BrowserAztecCodeReader();
+        const codeReader = new win.ZXingBrowser.BrowserDatamatrixCodeReader();
         expect(codeReader).to.not.be.null;
       });
     });

@@ -2,7 +2,7 @@
 
 context('Actions', () => {
   beforeEach(() => {
-    cy.visit('http://localhost:8080/e2e/pages/qr-camera/index.html');
+    cy.visit('http://localhost:8080/cypress/fixtures//index.html');
   });
 
   describe('Instantiates Multi Format Reader', () => {

@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en-US">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="author" content="ZXing for JS">
+
+  <title>ZXing Browser | ⚠ Test Page ⚠</title>
+
+  <link rel="stylesheet" rel="preload" as="style" onload="this.rel='stylesheet';this.onload=null"
+    href="https://fonts.googleapis.com/css?family=Roboto:300,300italic,700,700italic">
+  <link rel="stylesheet" rel="preload" as="style" onload="this.rel='stylesheet';this.onload=null"
+    href="https://unpkg.com/normalize.css@8.0.0/normalize.css">
+  <link rel="stylesheet" rel="preload" as="style" onload="this.rel='stylesheet';this.onload=null"
+    href="https://unpkg.com/milligram@1.3.0/dist/milligram.min.css">
+
+  <!-- sycronously loads the library's script so E2E doesn't have to wait for it -->
+  <script type="text/javascript" src="../../../dist/umd/zxing-browser.js"></script>
+</head>
+
+<body>
+
+  <main class="wrapper" style="padding-top:2em">
+
+    <section class="container" id="demo-content">
+      <h1 class="title">⚠ 🦓 📷 ZXing Browser E2E Test Page 📷 🦓 ⚠</h1>
+
+      <blockquote>
+        <p>Don't excpect much from this page, this is just a playground for our E2E tests to run!</p>
+      </blockquote>
+
+      <section id="test-area-qr-code">
+
+        <h2>QR Codes</h2>
+
+        <section id="test-area-qr-code-webcam">
+
+          <h3>Webcam</h3>
+
+          <video width="300" height="200"></video>
+
+        </section>
+
+        <section id="test-area-qr-code-image">
+
+          <h3>Images</h3>
+
+          <img src="./images/blackbox/qrcode-3/01.png" />
+
+        </section>
+
+        <section id="test-area-qr-code-video">
+
+          <h3>Videos</h3>
+
+          <video src="./videos/qrcode.mp4" width="200" height="300" muted autoplay loop></video>
+
+          <br>
+
+          <small>
+            QR code video from
+            <a href="https://cirocosta.github.io/qcode-decoder/">https://cirocosta.github.io/qcode-decoder/</a>.
+          </small>
+
+        </section>
+
+      </section>
+
+      <section id="test-area-pdf417">
+
+        <h2>PDF417s</h2>
+
+        <section id="test-area-pdf417-webcam">
+
+          <h3>Webcam</h3>
+
+          <p>There's no PDF417 webcam video mock!</p>
+
+        </section>
+
+        <section id="test-area-pdf417-image">
+
+          <h3>Images</h3>
+
+          <img id="test-area-pdf417-image-pdf417-2-05" src="./images/blackbox/pdf417-2/05.png" />
+          <img id="test-area-pdf417-image-pdf417-2-15" src="./images/blackbox/pdf417-2/15.png" />
+          <img id="test-area-pdf417-image-pdf417-3-08" src="./images/blackbox/pdf417-3/08.png" />
+
+        </section>
+
+        <section id="test-area-pdf417-video">
+
+          <h3>Videos</h3>
+
+          <p>There's no PDF417 video fixture!</p>
+
+        </section>
+
+      </section>
+
+      <section id="test-area-aztec">
+
+        <h2>Aztecs</h2>
+
+        <section id="test-area-aztec-webcam">
+
+          <h3>Webcam</h3>
+
+          <p>There's no Aztec webcam video mock!</p>
+
+        </section>
+
+        <section id="test-area-aztec-image">
+
+          <h3>Images</h3>
+
+          <img id="test-area-aztec-image-aztec-1-7" src="./images/blackbox/aztec-1/7.png" />
+          <img id="test-area-aztec-image-aztec-1-lorem-151x151" src="./images/blackbox/aztec-1/lorem-151x151.png" />
+          <img id="test-area-aztec-image-aztec-2-01" src="./images/blackbox/aztec-2/01.png" />
+          <img id="test-area-aztec-image-aztec-2-22" src="./images/blackbox/aztec-2/22.png" />
+
+        </section>
+
+        <section id="test-area-aztec-video">
+
+          <h3>Videos</h3>
+
+          <p>There's no Aztec video fixture!</p>
+
+        </section>
+
+      </section>
+
+    </section>
+
+    <hr>
+
+    <footer class="footer">
+      <section class="container">
+        <p>See the <a href="https://github.com/zxing-js/browser">source code</a> for this library.</p>
+        <p>
+          ZXing for JS. Licensed under the
+          <a target="_blank" href="https://github.com/zxing-js/library#license" title="MIT">MIT</a> license.
+        </p>
+        <p>
+          Please consider <a href="https://opencollective.com/zxing-js#section-contribute">contributing to the
+            project</a> and keep it's 🔥 alive!
+        </p>
+      </section>
+    </footer>
+
+  </main>
+
+</body>
+
+</html>
