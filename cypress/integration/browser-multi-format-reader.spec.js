@@ -6,8 +6,10 @@ context('Actions', () => {
   });
 
   describe('Instantiates Multi Format Reader', () => {
-    it('has ZXing imported into window and creates instace', () => {
-      cy.window().should('have.property', 'ZXing');
+    it('has ZXing imported into window', () => {
+      cy.window().should('have.property', 'ZXingBrowser');
+    });
+    it('creates instace', () => {
       cy.window().then((win) => {
         // call whatever you want on your app's window
         // so your app methods must be exposed somehow
