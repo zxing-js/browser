@@ -33,13 +33,12 @@ jobs:
           key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
           restore-keys: |
             ${{ runner.os }}-yarn-
-      
+
       - name: Install dependencies
         run: yarn install --frozen-lockfile
 
-      - name: E2E Test the application
-        run: yarn e2e:test
-
       - name: Build the application
         run: yarn build
-      
+
+      - name: E2E Test the application
+        run: yarn e2e:test
