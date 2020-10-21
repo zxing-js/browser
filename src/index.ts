@@ -8,4 +8,3 @@ export * from './BrowserPDF417Reader';
 export * from './BrowserQRCodeReader';
 export * from './BrowserQRCodeSvgWriter';
 export * from './HTMLCanvasElementLuminanceSource';
-export * from './VideoInputDevice';

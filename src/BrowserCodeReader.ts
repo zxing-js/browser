@@ -12,7 +12,6 @@ import {
 import { DecodeContinuouslyCallback } from './DecodeContinuouslyCallback';
 import { HTMLCanvasElementLuminanceSource } from './HTMLCanvasElementLuminanceSource';
 import { HTMLVisualMediaElement } from './HTMLVisualMediaElement';
-import { VideoInputDevice } from './VideoInputDevice';
 
 /**
  * Base class for browser code reader.
@@ -191,22 +190,6 @@ export class BrowserCodeReader {
     }
 
     /**
-     * Obtain the list of available devices with type 'videoinput'.
-     *
-     * @returns {Promise<VideoInputDevice[]>} an array of available video input devices
-     *
-     * @memberOf BrowserCodeReader
-     *
-     * @deprecated Use `listVideoInputDevices` instead.
-     */
-    public async getVideoInputDevices(): Promise<VideoInputDevice[]> {
-
-        const devices = await this.listVideoInputDevices();
-
-        return devices.map((d) => new VideoInputDevice(d.deviceId, d.label));
-    }
-
-    /**
      * Let's you find a device using it's Id.
      */
     public async findDeviceById(deviceId: string): Promise<MediaDeviceInfo | undefined> {
@@ -218,21 +201,6 @@ export class BrowserCodeReader {
         }
 
         return devices.find((x) => x.deviceId === deviceId);
-    }
-
-    /**
-     * Decodes the barcode from the device specified by deviceId while showing the video in the specified video element.
-     *
-     * @param deviceId the id of one of the devices obtained after calling getVideoInputDevices. Can be undefined, in this case it will decode from one of the available devices, preffering the main camera (environment facing) if available.
-     * @param videoSource the video element in page where to show the video while decoding. Can be either an element id or directly an HTMLVideoElement. Can be undefined, in which case no video will be shown.
-     * @returns The decoding result.
-     *
-     * @memberOf BrowserCodeReader
-     *
-     * @deprecated Use `decodeOnceFromVideoDevice` instead.
-     */
-    public async decodeFromInputVideoDevice(deviceId?: string, videoSource?: string | HTMLVideoElement): Promise<Result> {
-        return await this.decodeOnceFromVideoDevice(deviceId, videoSource);
     }
 
     /**
@@ -294,25 +262,6 @@ export class BrowserCodeReader {
         const result = await this.decodeOnce(video);
 
         return result;
-    }
-
-    /**
-     * Continuously decodes the barcode from the device specified by device while showing the video in the specified video element.
-     *
-     * @param {string|null} [deviceId] the id of one of the devices obtained after calling getVideoInputDevices. Can be undefined, in this case it will decode from one of the available devices, preffering the main camera (environment facing) if available.
-     * @param {string|HTMLVideoElement|null} [video] the video element in page where to show the video while decoding. Can be either an element id or directly an HTMLVideoElement. Can be undefined, in which case no video will be shown.
-     * @returns {Promise<void>}
-     *
-     * @memberOf BrowserCodeReader
-     *
-     * @deprecated Use `decodeFromVideoDevice` instead.
-     */
-    public async decodeFromInputVideoDeviceContinuously(
-        deviceId: string,
-        videoSource: string | HTMLVideoElement | undefined,
-        callbackFn: DecodeContinuouslyCallback,
-    ): Promise<void> {
-        return await this.decodeFromVideoDevice(deviceId, videoSource, callbackFn);
     }
 
     /**
