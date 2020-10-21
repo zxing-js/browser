@@ -379,10 +379,15 @@ export class BrowserCodeReader {
   }
 
   /**
-   * In one attempt, tries to decode the barcode from the device specified by deviceId while showing the video in the specified video element.
+   * In one attempt, tries to decode the barcode from the device specified by deviceId
+   * while showing the video in the specified video element.
    *
-   * @param deviceId the id of one of the devices obtained after calling getVideoInputDevices. Can be undefined, in this case it will decode from one of the available devices, preffering the main camera (environment facing) if available.
-   * @param videoSource the video element in page where to show the video while decoding. Can be either an element id or directly an HTMLVideoElement. Can be undefined, in which case no video will be shown.
+   * @param deviceId the id of one of the devices obtained after calling getVideoInputDevices.
+   *  Can be undefined, in this case it will decode from one of the available devices,
+   *  preffering the main camera (environment facing) if available.
+   * @param videoSource the video element in page where to show the video while decoding.
+   *  Can be either an element id or directly an HTMLVideoElement. Can be undefined,
+   *  in which case no video will be shown.
    * @returns The decoding result.
    *
    * @memberOf BrowserCodeReader
