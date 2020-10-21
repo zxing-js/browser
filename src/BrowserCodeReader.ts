@@ -191,15 +191,21 @@ export class BrowserCodeReader {
   }
 
   /**
-   * In one attempt, tries to decode the barcode from a stream obtained from the given constraints while showing the video in the specified video element.
+   * In one attempt, tries to decode the barcode from a stream obtained from the given
+   * constraints while showing the video in the specified video element.
    *
    * @param constraints the media stream constraints to get s valid media stream to decode from
-   * @param videoSource the video element in page where to show the video while decoding. Can be either an element id or directly an HTMLVideoElement. Can be undefined, in which case no video will be shown.
+   * @param videoSource the video element in page where to show the video while decoding.
+   *  Can be either an element id or directly an HTMLVideoElement. Can be undefined,
+   *  in which case no video will be shown.
    * @returns The decoding result.
    *
    * @memberOf BrowserCodeReader
    */
-  public async decodeOnceFromConstraints(constraints: MediaStreamConstraints, videoSource?: string | HTMLVideoElement): Promise<Result> {
+  public async decodeOnceFromConstraints(
+    constraints: MediaStreamConstraints,
+    videoSource?: string | HTMLVideoElement,
+  ): Promise<Result> {
 
     const stream = await navigator.mediaDevices.getUserMedia(constraints);
 
@@ -207,10 +213,13 @@ export class BrowserCodeReader {
   }
 
   /**
-   * In one attempt, tries to decode the barcode from a stream obtained from the given constraints while showing the video in the specified video element.
+   * In one attempt, tries to decode the barcode from a stream obtained from the given
+   * constraints while showing the video in the specified video element.
    *
    * @param {MediaStream} [constraints] the media stream constraints to get s valid media stream to decode from
-   * @param {string|HTMLVideoElement} [video] the video element in page where to show the video while decoding. Can be either an element id or directly an HTMLVideoElement. Can be undefined, in which case no video will be shown.
+   * @param {string|HTMLVideoElement} [video] the video element in page where to show the video while decoding.
+   *  Can be either an element id or directly an HTMLVideoElement. Can be undefined,
+   *  in which case no video will be shown.
    * @returns {Promise<Result>} The decoding result.
    *
    * @memberOf BrowserCodeReader
@@ -558,7 +567,11 @@ export class BrowserCodeReader {
   /**
    * Tries to decode from the video input until it finds some value.
    */
-  public decodeOnce(element: HTMLVisualMediaElement, retryIfNotFound = true, retryIfChecksumOrFormatError = true): Promise<Result> {
+  public decodeOnce(
+    element: HTMLVisualMediaElement,
+    retryIfNotFound = true,
+    retryIfChecksumOrFormatError = true,
+  ): Promise<Result> {
 
     this._stopAsyncDecode = false;
 
