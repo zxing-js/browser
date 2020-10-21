@@ -672,9 +672,33 @@ export class BrowserCodeReader {
     public decode(element: HTMLVisualMediaElement): Result {
 
         // get binary bitmap for decode function
-        const binaryBitmap = this.createBinaryBitmap(element);
+        const binaryBitmap = this.createBinaryBitmapFromMediaElem(element);
 
         return this.decodeBitmap(binaryBitmap);
+    }
+
+    /**
+     * @experimental
+     * Decodes some barcode from a canvas!
+     */
+    public decodeFromCanvas(canvas: HTMLCanvasElement): Result {
+
+      const binaryBitmap = this.createBinaryBitmapFromCanvas(canvas);
+
+      return this.decodeBitmap(binaryBitmap);
+    }
+
+    /**
+     * Creates a binaryBitmap based in a canvas.
+     *
+     * @param canvas HTML canvas element containing the image source draw.
+     */
+    public createBinaryBitmapFromCanvas(canvas: HTMLCanvasElement) {
+
+        const luminanceSource = new HTMLCanvasElementLuminanceSource(canvas);
+        const hybridBinarizer = new HybridBinarizer(luminanceSource);
+
+        return new BinaryBitmap(hybridBinarizer);
     }
 
     /**
@@ -682,7 +706,19 @@ export class BrowserCodeReader {
      *
      * @param mediaElement HTML element containing drawable image source.
      */
-    public createBinaryBitmap(mediaElement: HTMLVisualMediaElement): BinaryBitmap {
+    public createBinaryBitmapFromMediaElem(mediaElement: HTMLVisualMediaElement): BinaryBitmap {
+
+        const canvas = this.createCanvasFromMediaElement(mediaElement);
+
+        return this.createBinaryBitmapFromCanvas(canvas);
+    }
+
+    /**
+     * Creates a canvas and draws the current image frame from the media element on it.
+     *
+     * @param mediaElement HTML media element to extract an image frame from.
+     */
+    public createCanvasFromMediaElement(mediaElement: HTMLVisualMediaElement) {
 
         const ctx = this.getCaptureCanvasContext(mediaElement);
 
@@ -690,10 +726,7 @@ export class BrowserCodeReader {
 
         const canvas = this.getCaptureCanvas(mediaElement);
 
-        const luminanceSource = new HTMLCanvasElementLuminanceSource(canvas);
-        const hybridBinarizer = new HybridBinarizer(luminanceSource);
-
-        return new BinaryBitmap(hybridBinarizer);
+        return canvas;
     }
 
     /**
