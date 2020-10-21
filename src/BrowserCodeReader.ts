@@ -12,6 +12,7 @@ import {
 import { DecodeContinuouslyCallback } from './DecodeContinuouslyCallback';
 import { HTMLCanvasElementLuminanceSource } from './HTMLCanvasElementLuminanceSource';
 import { HTMLVisualMediaElement } from './HTMLVisualMediaElement';
+import { IScannerControls } from './IScannerControls';
 
 /**
  * Base class for browser code reader.
@@ -236,6 +237,37 @@ export class BrowserCodeReader {
   }
 
   /**
+   * Creates a canvas and draws the current image frame from the media element on it.
+   *
+   * @param mediaElement HTML media element to extract an image frame from.
+   */
+  public static createCanvasFromMediaElement(mediaElement: HTMLVisualMediaElement) {
+
+    const canvas = BrowserCodeReader.createCaptureCanvas(mediaElement);
+    const ctx = canvas.getContext('2d');
+
+    if (!ctx) {
+      throw new Error('Couldn\'t find Canvas 2D Context.');
+    }
+
+    BrowserCodeReader.drawImageOnCanvas(ctx, mediaElement);
+
+    return canvas;
+  }
+
+  /**
+   * Creates a binaryBitmap based in some image source.
+   *
+   * @param mediaElement HTML element containing drawable image source.
+   */
+  public static createBinaryBitmapFromMediaElem(mediaElement: HTMLVisualMediaElement): BinaryBitmap {
+
+    const canvas = BrowserCodeReader.createCanvasFromMediaElement(mediaElement);
+
+    return BrowserCodeReader.createBinaryBitmapFromCanvas(canvas);
+  }
+
+  /**
    * Unbinds a HTML video src property.
    *
    * @param videoElement
@@ -252,15 +284,6 @@ export class BrowserCodeReader {
       videoElement.removeAttribute('src');
     }
   }
-
-  /**
-   * The HTML canvas element, used to draw the video or image's frame for decoding.
-   */
-  protected captureCanvas?: HTMLCanvasElement;
-  /**
-   * The HTML canvas element context.
-   */
-  protected captureCanvasContext?: CanvasRenderingContext2D;
 
   /**
    * The HTML image element, used as a fallback for the video element when decoding.
@@ -463,7 +486,6 @@ export class BrowserCodeReader {
    * @param {string|HTMLVideoElement|null} [video] the video element in page where to show the video
    *  while decoding. Can be either an element id or directly an HTMLVideoElement. Can be undefined,
    *  in which case no video will be shown.
-   * @returns {Promise<void>}
    *
    * @memberOf BrowserCodeReader
    */
@@ -471,7 +493,7 @@ export class BrowserCodeReader {
     deviceId: string | null,
     previewElem: string | HTMLVideoElement | undefined,
     callbackFn: DecodeContinuouslyCallback,
-  ): Promise<void> {
+  ): Promise<IScannerControls> {
 
     let videoConstraints: MediaTrackConstraints;
 
@@ -494,7 +516,6 @@ export class BrowserCodeReader {
    * @param {string|HTMLVideoElement} [previewElem] the video element in page where to show the video while
    *  decoding. Can be either an element id or directly an HTMLVideoElement. Can be undefined, in
    *  which case no video will be shown.
-   * @returns {Promise<Result>} The decoding result.
    *
    * @memberOf BrowserCodeReader
    */
@@ -502,7 +523,7 @@ export class BrowserCodeReader {
     constraints: MediaStreamConstraints,
     previewElem: string | HTMLVideoElement | undefined,
     callbackFn: DecodeContinuouslyCallback,
-  ): Promise<void> {
+  ): Promise<IScannerControls> {
 
     const stream = await navigator.mediaDevices.getUserMedia(constraints);
 
@@ -517,7 +538,6 @@ export class BrowserCodeReader {
    * @param {string|HTMLVideoElement} [preview] the video element in page where to show the video
    *  while decoding. Can be either an element id or directly an HTMLVideoElement. Can be undefined,
    *  in which case no video will be shown.
-   * @returns {Promise<Result>} The decoding result.
    *
    * @memberOf BrowserCodeReader
    */
@@ -525,13 +545,13 @@ export class BrowserCodeReader {
     stream: MediaStream,
     preview: string | HTMLVideoElement | undefined,
     callbackFn: DecodeContinuouslyCallback,
-  ) {
+  ): Promise<IScannerControls> {
 
     this.reset();
 
     const video = await this.attachStreamToVideo(stream, preview);
 
-    return await this.decodeContinuously(video, callbackFn);
+    return this.decodeContinuously(video, callbackFn);
   }
 
   /**
@@ -669,58 +689,75 @@ export class BrowserCodeReader {
   public decodeOnce(
     element: HTMLVisualMediaElement,
     retryIfNotFound = true,
-    retryIfChecksumOrFormatError = true,
+    retryIfChecksumError = true,
+    retryIfFormatError = true,
   ): Promise<Result> {
+    return new Promise((resolve, reject) => {
 
-    this._stopAsyncDecode = false;
+      const controls = this.decodeContinuously(element, (result, error) => {
 
-    const loop = (resolve: (value?: Result | PromiseLike<Result>) => void, reject: (reason?: any) => void) => {
-
-      if (this._stopAsyncDecode) {
-        reject(new NotFoundException('Video stream has ended before any code could be detected.'));
-        this._stopAsyncDecode = false;
-        return;
-      }
-
-      try {
-        const result = this.decode(element);
-        resolve(result);
-      } catch (e) {
-
-        const ifNotFound = retryIfNotFound && e instanceof NotFoundException;
-        const isChecksumOrFormatError = e instanceof ChecksumException || e instanceof FormatException;
-        const ifChecksumOrFormat = isChecksumOrFormatError && retryIfChecksumOrFormatError;
-
-        if (ifNotFound || ifChecksumOrFormat) {
-          // trying again
-          return setTimeout(loop, this.delayBetweenScanAttempts, resolve, reject);
+        if (result) {
+          // good result, returning
+          resolve(result);
+          controls.stop();
+          return;
         }
 
-        reject(e);
-      }
-    };
+        if (error) {
 
-    return new Promise((resolve, reject) => loop(resolve, reject));
+          // checks if it should retry
+
+          if (error instanceof NotFoundException && retryIfNotFound) { return; }
+          if (error instanceof ChecksumException && retryIfChecksumError) { return; }
+          if (error instanceof FormatException && retryIfFormatError) { return; }
+
+          // not re-trying
+
+          controls.stop(); // stops scan loop
+          reject(error); // returns the error
+        }
+      });
+
+    });
   }
 
   /**
    * Continuously decodes from video input.
    */
-  public decodeContinuously(element: HTMLVideoElement, callbackFn: DecodeContinuouslyCallback): void {
+  public decodeContinuously(
+    element: HTMLVisualMediaElement,
+    callbackFn: DecodeContinuouslyCallback,
+  ): IScannerControls {
 
-    this._stopContinuousDecode = false;
+    /**
+     * The HTML canvas element, used to draw the video or image's frame for decoding.
+     */
+    const captureCanvas = BrowserCodeReader.createCaptureCanvas(element);
+
+    /**
+     * The HTML canvas element context.
+     */
+    const captureCanvasContext = captureCanvas.getContext('2d');
+
+    if (!captureCanvasContext) {
+      throw new Error('Couldn\'t create canvas for visual element scan.');
+    }
+
+    let stopScan = false;
+    let lastTimeoutId: number;
 
     const loop = () => {
 
-      if (this._stopContinuousDecode) {
-        this._stopContinuousDecode = false;
+      if (stopScan) {
+        // no need to clear timeouts as none was create yet in this scope.
         return;
       }
 
       try {
-        const result = this.decode(element);
+        BrowserCodeReader.drawImageOnCanvas(captureCanvasContext, element);
+        const result = this.decodeFromCanvas(captureCanvas);
         callbackFn(result, undefined);
-        setTimeout(loop, this.delayBetweenScanSuccess);
+        lastTimeoutId = window.setTimeout(loop, this.delayBetweenScanSuccess);
       } catch (e) {
 
         callbackFn(undefined, e);
@@ -730,13 +767,20 @@ export class BrowserCodeReader {
 
         if (isChecksumOrFormatError || isNotFound) {
           // trying again
-          setTimeout(loop, this.delayBetweenScanAttempts);
+          lastTimeoutId = window.setTimeout(loop, this.delayBetweenScanAttempts);
         }
 
       }
     };
 
     loop();
+
+    const stop = () => {
+      stopScan = true;
+      clearTimeout(lastTimeoutId);
+    };
+
+    return { stop };
   }
 
   /**
@@ -745,7 +789,7 @@ export class BrowserCodeReader {
   public decode(element: HTMLVisualMediaElement): Result {
 
     // get binary bitmap for decode function
-    const binaryBitmap = this.createBinaryBitmapFromMediaElem(element);
+    const binaryBitmap = BrowserCodeReader.createBinaryBitmapFromMediaElem(element);
 
     return this.decodeBitmap(binaryBitmap);
   }
@@ -759,34 +803,6 @@ export class BrowserCodeReader {
     const binaryBitmap = BrowserCodeReader.createBinaryBitmapFromCanvas(canvas);
 
     return this.decodeBitmap(binaryBitmap);
-  }
-
-  /**
-   * Creates a binaryBitmap based in some image source.
-   *
-   * @param mediaElement HTML element containing drawable image source.
-   */
-  public createBinaryBitmapFromMediaElem(mediaElement: HTMLVisualMediaElement): BinaryBitmap {
-
-    const canvas = this.createCanvasFromMediaElement(mediaElement);
-
-    return BrowserCodeReader.createBinaryBitmapFromCanvas(canvas);
-  }
-
-  /**
-   * Creates a canvas and draws the current image frame from the media element on it.
-   *
-   * @param mediaElement HTML media element to extract an image frame from.
-   */
-  public createCanvasFromMediaElement(mediaElement: HTMLVisualMediaElement) {
-
-    const ctx = this.getCaptureCanvasContext(mediaElement);
-
-    BrowserCodeReader.drawImageOnCanvas(ctx, mediaElement);
-
-    const canvas = this.getCaptureCanvas(mediaElement);
-
-    return canvas;
   }
 
   /**
@@ -811,7 +827,6 @@ export class BrowserCodeReader {
 
     this._destroyVideoElement();
     this._destroyImageElement();
-    this._destroyCaptureCanvas();
   }
 
   /**
@@ -868,35 +883,6 @@ export class BrowserCodeReader {
 
     // if canplay was already fired, we won't know when to play, so just give it a try
     BrowserCodeReader.tryPlayVideo(element);
-  }
-
-  /**
-   *
-   */
-  protected getCaptureCanvasContext(mediaElement?: HTMLVisualMediaElement) {
-
-    if (!this.captureCanvasContext) {
-      const elem = this.getCaptureCanvas(mediaElement);
-      const ctx = elem.getContext('2d');
-      if (!ctx) { throw new Error('Couldn\'t find Canvas 2D Context.'); }
-      this.captureCanvasContext = ctx;
-    }
-
-    return this.captureCanvasContext;
-  }
-
-  /**
-   *
-   */
-  protected getCaptureCanvas(mediaElement?: HTMLVisualMediaElement): HTMLCanvasElement {
-
-    if (!this.captureCanvas) {
-      this._destroyCaptureCanvas();
-      const elem = BrowserCodeReader.createCaptureCanvas(mediaElement);
-      this.captureCanvas = elem;
-    }
-
-    return this.captureCanvas;
   }
 
   /**
@@ -1009,16 +995,5 @@ export class BrowserCodeReader {
     imageElement.removeAttribute('src');
 
     this.imageElement = undefined;
-  }
-
-  /**
-   * Cleans canvas references 🖌
-   */
-  private _destroyCaptureCanvas(): void {
-
-    // then forget about that element 😢
-
-    this.captureCanvasContext = undefined;
-    this.captureCanvas = undefined;
   }
 }
