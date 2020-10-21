@@ -11,7 +11,7 @@ context('Actions', () => {
       cy.window().then((win) => {
         // call whatever you want on your app's window
         // so your app methods must be exposed somehow
-        const codeReader = new win.ZXing.BrowserAztecCodeReader();
+        const codeReader = new win.ZXingBrowserBrowser.BrowserAztecCodeReader();
         expect(codeReader).to.not.be.null;
       });
     });
