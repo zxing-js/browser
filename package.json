@@ -40,7 +40,7 @@
     "browser": "./umd/zxing-browser.js",
     "browser:min": "./umd/zxing-browser.min.js",
     "scripts": {
-        "clean": "yarn shx rm -rf umd esm esm5",
+        "clean": "./node_modules/.bin/shx rm -rf umd esm esm5",
         "build": "yarn clean && yarn build:es2015 && yarn build:esm && yarn build:cjs && yarn build:umd && yarn build:umd:min && yarn build:copy",
         "build:es2015": "tsc --build tsconfig.lib-es2015.json",
         "build:esm": "tsc --build tsconfig.lib-esm.json",
@@ -48,11 +48,8 @@
         "build:umd": "rollup -c rollup.config.js",
         "build:umd:min": "cd dist/umd && terser --compress --mangle --source-map --screw-ie8 --comments -o zxing-browser.min.js -- zxing-browser.js && gzip zxing-browser.min.js -c > zxing-browser.min.js.gz",
         "build:copy": "cp README.md dist && cp package.json dist && cp LICENSE dist",
-        "shx": "./node_modules/.bin/shx",
-        "tsc": "./node_modules/.bin/tsc",
-        "pm2": "./node_modules/.bin/pm2",
-        "e2e:serve:start": "yarn pm2 serve ./ 8080 --name zxing-browser-e2e",
-        "e2e:serve:stop": "yarn pm2 del zxing-browser-e2e",
+        "e2e:serve:start": "pm2 serve ./ 8080 --name zxing-browser-e2e",
+        "e2e:serve:stop": "pm2 del zxing-browser-e2e",
         "e2e:test": "yarn e2e:serve:start && yarn e2e:run && yarn e2e:serve:stop",
         "e2e:run": "cypress run --headless --browser chrome"
     },
