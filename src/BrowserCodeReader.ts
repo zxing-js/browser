@@ -104,23 +104,22 @@ export class BrowserCodeReader {
 
   public static prepareImageElement(imageSource?: HTMLImageElement | string): HTMLImageElement {
 
-    let imageElement: HTMLImageElement;
-
-    if (typeof imageSource === 'undefined') {
-      imageElement = document.createElement('img');
-      imageElement.width = 200;
-      imageElement.height = 200;
+    if (imageSource instanceof HTMLImageElement) {
+      return imageSource;
     }
 
     if (typeof imageSource === 'string') {
-      imageElement = BrowserCodeReader.getMediaElement(imageSource, 'img') as HTMLImageElement;
+      return BrowserCodeReader.getMediaElement(imageSource, 'img') as HTMLImageElement;
     }
 
-    if (imageSource instanceof HTMLImageElement) {
-      imageElement = imageSource;
+    if (typeof imageSource === 'undefined') {
+      const imageElement = document.createElement('img');
+      imageElement.width = 200;
+      imageElement.height = 200;
+      return imageElement;
     }
 
-    return imageElement!!;
+    throw new Error('Couldn\'t get imageElement from imageSource!');
   }
 
   /**
@@ -757,7 +756,7 @@ export class BrowserCodeReader {
    * Tries to decode from the video input until it finds some value.
    */
   public decodeOnce(
-    element: HTMLVideoElement,
+    element: HTMLVisualMediaElement,
     retryIfNotFound = true,
     retryIfChecksumError = true,
     retryIfFormatError = true,
@@ -898,10 +897,6 @@ export class BrowserCodeReader {
       await BrowserCodeReader._waitImageLoad(element);
     }
 
-    try {
-      return this.decode(element);
-    } catch (error) {
-      throw error;
-    }
+    return this.decode(element);
   }
 }
