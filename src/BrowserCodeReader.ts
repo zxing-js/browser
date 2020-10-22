@@ -203,10 +203,12 @@ export class BrowserCodeReader {
           height: mediaElement.videoHeight,
           width: mediaElement.videoWidth,
         };
-      } else if (mediaElement instanceof HTMLImageElement) {
+      }
+
+      if (mediaElement instanceof HTMLImageElement) {
         return {
-          height: mediaElement.naturalWidth || mediaElement.width,
-          width: mediaElement.naturalHeight || mediaElement.height,
+          height: mediaElement.naturalHeight || mediaElement.height,
+          width: mediaElement.naturalWidth || mediaElement.width,
         };
       }
 
