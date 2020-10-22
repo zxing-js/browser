@@ -267,6 +267,12 @@ export class BrowserCodeReader {
     return BrowserCodeReader.createBinaryBitmapFromCanvas(canvas);
   }
 
+  public static destroyImageElement(imageElement: HTMLImageElement): void {
+    imageElement.src = '';
+    imageElement.removeAttribute('src');
+    imageElement = undefined;
+  }
+
   /**
    * Unbinds a HTML video src property.
    *
@@ -284,17 +290,6 @@ export class BrowserCodeReader {
       videoElement.removeAttribute('src');
     }
   }
-
-  /**
-   * The HTML image element, used as a fallback for the video element when decoding.
-   */
-  protected imageElement?: HTMLImageElement;
-
-  /**
-   * Should contain the current registered listener for image loading,
-   * used to unregister that listener when needed.
-   */
-  protected imageLoadedListener?: EventListener;
 
   /**
    * The stream output from camera.
@@ -547,27 +542,19 @@ export class BrowserCodeReader {
   /**
    * Decodes something from an image HTML element.
    */
-  public decodeFromImageElement(source: string | HTMLImageElement): Promise<Result> {
+  public async decodeFromImageElement(source: string | HTMLImageElement): Promise<Result> {
 
     if (!source) {
       throw new ArgumentException('An image element must be provided.');
     }
 
-    this.reset();
-
     const element = BrowserCodeReader.prepareImageElement(source);
 
-    this.imageElement = element;
+    // onLoad will remove it's callback once done
+    // we do not need to dispose or destroy the image
+    // since it came from the user
 
-    let task: Promise<Result>;
-
-    if (BrowserCodeReader.isImageLoaded(element)) {
-      task = this.decodeOnce(element, false, true);
-    } else {
-      task = this._decodeOnLoadImage(element);
-    }
-
-    return task;
+    return await this._decodeOnLoadImage(element);
   }
 
   /**
@@ -596,21 +583,28 @@ export class BrowserCodeReader {
   /**
    * Decodes an image from a URL.
    */
-  public decodeFromImageUrl(url?: string): Promise<Result> {
+  public async decodeFromImageUrl(url?: string): Promise<Result> {
 
     if (!url) {
       throw new ArgumentException('An URL must be provided.');
     }
 
-    this.reset();
-
     const element = BrowserCodeReader.prepareImageElement();
 
-    const decodeTask = this._decodeOnLoadImage(element);
+    const task = this._decodeOnLoadImage(element);
 
+    // loads the image.
     element.src = url;
 
-    return decodeTask;
+    try {
+      // it waits the task so we can destroy the created image after
+      return await task;
+    } catch (error) {
+      throw error;
+    } finally {
+      // we created this image element, so we destroy it
+      BrowserCodeReader.destroyImageElement(element);
+    }
   }
 
   /**
@@ -800,7 +794,6 @@ export class BrowserCodeReader {
     // clean and forget about HTML elements
 
     this._destroyVideoElement();
-    this._destroyImageElement();
   }
 
   /**
@@ -890,11 +883,35 @@ export class BrowserCodeReader {
     return element;
   }
 
-  private _decodeOnLoadImage(element: HTMLImageElement): Promise<Result> {
-    return new Promise((resolve, reject) => {
-      this.imageLoadedListener = () => this.decodeOnce(element, false, true).then(resolve, reject);
-      element.addEventListener('load', this.imageLoadedListener);
+  private _waitImageLoad(element: HTMLImageElement): Promise<void> {
+    return new Promise<void>((resolve) => {
+
+      const imageLoadedListener = () => {
+        // removes the listener
+        element.removeEventListener('load', imageLoadedListener);
+        // resolves the load
+        resolve();
+      };
+
+      element.addEventListener('load', imageLoadedListener);
+
+      // @note we can setTimeout to reject
     });
+  }
+
+  private async _decodeOnLoadImage(element: HTMLImageElement): Promise<Result> {
+
+    const isImageLoaded = BrowserCodeReader.isImageLoaded(element);
+
+    if (!isImageLoaded) {
+      await this._waitImageLoad(element);
+    }
+
+    try {
+      return this.decode(element);
+    } catch (error) {
+      throw error;
+    }
   }
 
   private async _decodeOnLoadVideo(videoElement: HTMLVideoElement): Promise<Result> {
@@ -941,27 +958,5 @@ export class BrowserCodeReader {
     BrowserCodeReader.cleanVideoSource(videoElement);
 
     this.videoElement = undefined;
-  }
-
-  private _destroyImageElement(): void {
-
-    const imageElement = this.imageElement;
-
-    if (!imageElement) {
-      return;
-    }
-
-    // first gives freedon to the element 🕊
-
-    if (undefined !== this.imageLoadedListener) {
-      imageElement.removeEventListener('load', this.imageLoadedListener);
-    }
-
-    // then forget about that element 😢
-
-    imageElement.src = '';
-    imageElement.removeAttribute('src');
-
-    this.imageElement = undefined;
   }
 }
