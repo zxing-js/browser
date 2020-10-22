@@ -14,4 +14,5 @@ export * from './readers/BrowserPDF417Reader';
 export * from './readers/BrowserQRCodeReader';
 
 // writers
-export * from './BrowserQRCodeSvgWriter';
+export * from './writers/BrowserCodeSvgWriter';
+export * from './writers/BrowserQRCodeSvgWriter';

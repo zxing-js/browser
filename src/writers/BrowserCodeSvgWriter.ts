@@ -10,7 +10,7 @@ import {
 const svgNs = 'http://www.w3.org/2000/svg';
 
 /**/
-abstract class BrowserSvgCodeWriter {
+abstract class BrowserCodeSvgWriter {
 
   /**
    * Default quiet zone in pixels.
@@ -61,7 +61,7 @@ abstract class BrowserSvgCodeWriter {
 
     const quietZone = hints && hints.get(EncodeHintType.MARGIN) !== undefined
       ? Number.parseInt(hints.get(EncodeHintType.MARGIN).toString(), 10)
-      : BrowserSvgCodeWriter.QUIET_ZONE_SIZE;
+      : BrowserCodeSvgWriter.QUIET_ZONE_SIZE;
 
     const code = this.encode(hints, contents);
 
@@ -73,7 +73,7 @@ abstract class BrowserSvgCodeWriter {
    */
   protected createSVGElement(w: number, h: number): SVGSVGElement {
 
-    const el = document.createElementNS(BrowserSvgCodeWriter.SVG_NS, 'svg');
+    const el = document.createElementNS(BrowserCodeSvgWriter.SVG_NS, 'svg');
 
     el.setAttributeNS(svgNs, 'width', h.toString());
     el.setAttributeNS(svgNs, 'height', w.toString());
@@ -86,7 +86,7 @@ abstract class BrowserSvgCodeWriter {
    */
   protected createSvgPathPlaceholderElement(w: number, h: number): SVGPathElement {
 
-    const el = document.createElementNS(BrowserSvgCodeWriter.SVG_NS, 'path');
+    const el = document.createElementNS(BrowserCodeSvgWriter.SVG_NS, 'path');
 
     el.setAttributeNS(svgNs, 'd', `M0 0h${w}v${h}H0z`);
     el.setAttributeNS(svgNs, 'fill', 'none');
@@ -99,7 +99,7 @@ abstract class BrowserSvgCodeWriter {
    */
   protected createSvgRectElement(x: number, y: number, w: number, h: number): SVGRectElement {
 
-    const el = document.createElementNS(BrowserSvgCodeWriter.SVG_NS, 'rect');
+    const el = document.createElementNS(BrowserCodeSvgWriter.SVG_NS, 'rect');
 
     el.setAttributeNS(svgNs, 'x', x.toString());
     el.setAttributeNS(svgNs, 'y', y.toString());
@@ -188,4 +188,4 @@ abstract class BrowserSvgCodeWriter {
   }
 }
 
-export { BrowserSvgCodeWriter };
+export { BrowserCodeSvgWriter };
