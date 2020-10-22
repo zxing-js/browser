@@ -690,7 +690,7 @@ export class BrowserCodeReader {
     const video = await BrowserCodeReader.attachStreamToVideo(stream, preview);
 
     try {
-      const result = await this.decodeOnce(video);
+      const result = await this.scanOneResult(video);
       return result;
     } finally {
       if (!receivedPreview) {
@@ -741,7 +741,7 @@ export class BrowserCodeReader {
     await BrowserCodeReader.playVideoOnLoadAsync(element);
 
     // starts decoding after played the video
-    return await this.decodeOnce(element);
+    return await this.scanOneResult(element);
   }
 
   /**
@@ -773,7 +773,7 @@ export class BrowserCodeReader {
   /**
    * Tries to decode from the video input until it finds some value.
    */
-  public decodeOnce(
+  public scanOneResult(
     element: HTMLVisualMediaElement,
     retryIfNotFound = true,
     retryIfChecksumError = true,
