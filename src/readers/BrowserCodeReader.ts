@@ -547,7 +547,6 @@ export class BrowserCodeReader {
 
     const finalizeCallback = () => {
       if (!previewReceived) {
-        // @todo find a way to check if decodeContinuously ended
         BrowserCodeReader.cleanVideoSource(video);
       }
     };
@@ -612,7 +611,7 @@ export class BrowserCodeReader {
   /**
    * Decodes a video from a URL until it ends.
    */
-  public decodeFromVideoUrl(
+  public async decodeFromVideoUrl(
     url: string,
     callbackFn: DecodeContinuouslyCallback,
   ): Promise<IScannerControls> {
@@ -627,9 +626,16 @@ export class BrowserCodeReader {
     // starts loading the video
     element.src = url;
 
-    const controls = this.decodeFromVideoElement(element, callbackFn);
+    const finalizeCallback = () => {
+      // dispose created video element
+      BrowserCodeReader.cleanVideoSource(element);
+    };
 
-    // @todo dispose created video element
+    // plays the video
+    await BrowserCodeReader.playVideoOnLoadAsync(element);
+
+    // starts decoding after played the video
+    const controls = this.scan(element, callbackFn, finalizeCallback);
 
     return controls;
   }
