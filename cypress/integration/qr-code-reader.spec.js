@@ -82,7 +82,7 @@ context('QR Code Test Actions', () => {
         const codeReader = new win.ZXingBrowser.BrowserQRCodeReader();
 
         const sourceElem = win.document.querySelector('#test-area-qr-code-video > video');
-        const result = await codeReader.decodeFromVideoElement(sourceElem);
+        const result = await codeReader.decodeOnceFromVideoElement(sourceElem);
 
         const actual = result.text;
 
@@ -98,7 +98,7 @@ context('QR Code Test Actions', () => {
         const codeReader = new win.ZXingBrowser.BrowserQRCodeReader();
 
         const source = 'http://localhost:8080/cypress/fixtures//videos/qrcode.mp4';
-        const result = await codeReader.decodeFromVideoUrl(source);
+        const result = await codeReader.decodeOnceFromVideoUrl(source);
 
         const actual = result.text;
 
