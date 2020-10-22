@@ -44,7 +44,7 @@ export class BrowserCodeReader {
    * Defines what the videoElement src will be.
    *
    * @param videoElement
-   * @param stream
+   * @param stream The stream to be added as a source.
    */
   public static addVideoSource(videoElement: HTMLVideoElement, stream: MediaStream): void {
     // Older browsers may not have `srcObject`
@@ -82,6 +82,9 @@ export class BrowserCodeReader {
     return mediaElement as HTMLVisualMediaElement;
   }
 
+  /**
+   * Receives a source and makes sure to return a Video Element from it or fail.
+   */
   public static createVideoElement(videoThingy?: HTMLVideoElement | string): HTMLVideoElement {
 
     if (videoThingy instanceof HTMLVideoElement) {
@@ -102,6 +105,9 @@ export class BrowserCodeReader {
     throw new Error('Couldn\'t get videoElement from videoSource!');
   }
 
+  /**
+   * Receives a source and makes sure to return an Image Element from it or fail.
+   */
   public static prepareImageElement(imageSource?: HTMLImageElement | string): HTMLImageElement {
 
     if (imageSource instanceof HTMLImageElement) {
@@ -142,6 +148,9 @@ export class BrowserCodeReader {
     return videoElement;
   }
 
+  /**
+   * Checks if and HTML image is loaded.
+   */
   public static isImageLoaded(img: HTMLImageElement) {
     // During the onload event, IE correctly identifies any images that
     // weren’t downloaded as not complete. Others should too. Gecko-based
@@ -336,8 +345,8 @@ export class BrowserCodeReader {
   /**
    * Binds listeners and callbacks to the videoElement.
    *
-   * @param element
-   * @param callbackFn
+   * @param element The video element.
+   * @param callbackFn Callback invoked when the video is played.
    */
   protected static async playVideoOnLoad(element: HTMLVideoElement, callbackFn: EventListener): Promise<boolean> {
 
@@ -360,8 +369,7 @@ export class BrowserCodeReader {
   }
 
   /**
-   *
-   * @param videoElement
+   * Waits for a video to load and then hits play on it.
    */
   protected static async playVideoOnLoadAsync(videoElement: HTMLVideoElement): Promise<void> {
     return new Promise(async (resolve, reject) => {
@@ -395,8 +403,6 @@ export class BrowserCodeReader {
 
   /**
    * Unbinds a HTML video src property.
-   *
-   * @param videoElement
    */
   private static cleanVideoSource(videoElement: HTMLVideoElement): void {
 
@@ -439,8 +445,6 @@ export class BrowserCodeReader {
    * @param {number} [delayBetweenScanSuccess=500] Delay time between subsequent successful decode results.
    * @param hints Holds the hints the user sets for the Reader.
    * @param {number} [delayBetweenScanAttempts=500] Delay time between decode attempts made by the scanner.
-   *
-   * @memberOf BrowserCodeReader
    */
   public constructor(
     protected readonly reader: Reader,
@@ -468,7 +472,6 @@ export class BrowserCodeReader {
   }
 
   /**
-   * @experimental
    * Decodes some barcode from a canvas!
    */
   public decodeFromCanvas(canvas: HTMLCanvasElement): Result {
@@ -529,8 +532,6 @@ export class BrowserCodeReader {
    * @param {string|HTMLVideoElement} [previewElem] the video element in page where to show the video while
    *  decoding. Can be either an element id or directly an HTMLVideoElement. Can be undefined, in
    *  which case no video will be shown.
-   *
-   * @memberOf BrowserCodeReader
    */
   public async decodeFromConstraints(
     constraints: MediaStreamConstraints,
@@ -551,8 +552,6 @@ export class BrowserCodeReader {
    * @param {string|HTMLVideoElement} [preview] the video element in page where to show the video
    *  while decoding. Can be either an element id or directly an HTMLVideoElement. Can be undefined,
    *  in which case no video will be shown.
-   *
-   * @memberOf BrowserCodeReader
    */
   public async decodeFromStream(
     stream: MediaStream,
@@ -588,8 +587,6 @@ export class BrowserCodeReader {
    * @param {string|HTMLVideoElement|null} [video] the video element in page where to show the video
    *  while decoding. Can be either an element id or directly an HTMLVideoElement. Can be undefined,
    *  in which case no video will be shown.
-   *
-   * @memberOf BrowserCodeReader
    */
   public async decodeFromVideoDevice(
     deviceId: string | undefined,
@@ -634,8 +631,6 @@ export class BrowserCodeReader {
 
   /**
    * Decodes a video from a URL until it ends.
-   *
-   * @experimental
    */
   public decodeFromVideoUrl(
     url: string,
@@ -667,9 +662,7 @@ export class BrowserCodeReader {
    * @param videoSource the video element in page where to show the video while decoding.
    *  Can be either an element id or directly an HTMLVideoElement. Can be undefined,
    *  in which case no video will be shown.
-   * @returns The decoding result.
-   *
-   * @memberOf BrowserCodeReader
+   *  The decoding result.
    */
   public async decodeOnceFromConstraints(
     constraints: MediaStreamConstraints,
@@ -689,9 +682,6 @@ export class BrowserCodeReader {
    * @param {string|HTMLVideoElement} [video] the video element in page where to show the video while decoding.
    *  Can be either an element id or directly an HTMLVideoElement. Can be undefined,
    *  in which case no video will be shown.
-   * @returns {Promise<Result>} The decoding result.
-   *
-   * @memberOf BrowserCodeReader
    */
   public async decodeOnceFromStream(stream: MediaStream, preview?: string | HTMLVideoElement): Promise<Result> {
 
@@ -719,9 +709,6 @@ export class BrowserCodeReader {
    * @param videoSource the video element in page where to show the video while decoding.
    *  Can be either an element id or directly an HTMLVideoElement. Can be undefined,
    *  in which case no video will be shown.
-   * @returns The decoding result.
-   *
-   * @memberOf BrowserCodeReader
    */
   public async decodeOnceFromVideoDevice(deviceId?: string, videoSource?: string | HTMLVideoElement): Promise<Result> {
 
@@ -891,6 +878,9 @@ export class BrowserCodeReader {
     return controls;
   }
 
+  /**
+   * Waits for the image to load and then tries to decode it.
+   */
   private async _decodeOnLoadImage(element: HTMLImageElement): Promise<Result> {
 
     const isImageLoaded = BrowserCodeReader.isImageLoaded(element);
