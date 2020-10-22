@@ -182,6 +182,24 @@ export class BrowserCodeReader {
     canvasElementContext.drawImage(srcElement, 0, 0);
   }
 
+  public static getMediaElementDimensions(mediaElement: HTMLVisualMediaElement) {
+    if (mediaElement instanceof HTMLVideoElement) {
+      return {
+        height: mediaElement.videoHeight,
+        width: mediaElement.videoWidth,
+      };
+    }
+
+    if (mediaElement instanceof HTMLImageElement) {
+      return {
+        height: mediaElement.naturalHeight || mediaElement.height,
+        width: mediaElement.naturalWidth || mediaElement.width,
+      };
+    }
+
+    throw new Error('Couldn\'t find the Source\'s dimentions!');
+  }
+
   /**
    * 🖌 Prepares the canvas for capture and scan frames.
    */
@@ -197,25 +215,7 @@ export class BrowserCodeReader {
 
     const canvasElement = document.createElement('canvas');
 
-    const getDimensions = () => {
-      if (mediaElement instanceof HTMLVideoElement) {
-        return {
-          height: mediaElement.videoHeight,
-          width: mediaElement.videoWidth,
-        };
-      }
-
-      if (mediaElement instanceof HTMLImageElement) {
-        return {
-          height: mediaElement.naturalHeight || mediaElement.height,
-          width: mediaElement.naturalWidth || mediaElement.width,
-        };
-      }
-
-      throw new Error('Couldn\'t find the Source\'s dimentions!');
-    };
-
-    const { width, height } = getDimensions();
+    const { width, height } = BrowserCodeReader.getMediaElementDimensions(mediaElement);
 
     canvasElement.style.width = width + 'px';
     canvasElement.style.height = height + 'px';
