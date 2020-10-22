@@ -572,7 +572,7 @@ export class BrowserCodeReader {
       }
     };
 
-    const controls = this.decodeContinuously(video, callbackFn, finalizeCallback);
+    const controls = this.scan(video, callbackFn, finalizeCallback);
 
     return controls;
   }
@@ -626,7 +626,7 @@ export class BrowserCodeReader {
     await BrowserCodeReader.playVideoOnLoadAsync(element);
 
     // starts decoding after played the video
-    return this.decodeContinuously(element, callbackFn);
+    return this.scan(element, callbackFn);
   }
 
   /**
@@ -781,7 +781,7 @@ export class BrowserCodeReader {
   ): Promise<Result> {
     return new Promise((resolve, reject) => {
 
-      this.decodeContinuously(element, (result, error, controls) => {
+      this.scan(element, (result, error, controls) => {
 
         if (result) {
           // good result, returning
@@ -811,7 +811,7 @@ export class BrowserCodeReader {
   /**
    * Continuously decodes from video input.
    */
-  public decodeContinuously(
+  public scan(
     element: HTMLVisualMediaElement,
     callbackFn: DecodeContinuouslyCallback,
     finalizeCallback?: (error?: Error) => void,
