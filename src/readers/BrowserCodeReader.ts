@@ -9,31 +9,11 @@ import {
   Reader,
   Result,
 } from '@zxing/library';
-import { DecodeContinuouslyCallback } from './DecodeContinuouslyCallback';
-import { HTMLCanvasElementLuminanceSource } from './HTMLCanvasElementLuminanceSource';
-import { HTMLVisualMediaElement } from './HTMLVisualMediaElement';
-import { IScannerControls } from './IScannerControls';
-
-/**
- * If navigator is present.
- */
-function hasNavigator() {
-  return typeof navigator !== 'undefined';
-}
-
-/**
- * If mediaDevices under navigator is supported.
- */
-function isMediaDevicesSuported() {
-  return hasNavigator() && !!navigator.mediaDevices;
-}
-
-/**
- * If enumerateDevices under navigator is supported.
- */
-function canEnumerateDevices() {
-  return !!(isMediaDevicesSuported() && navigator.mediaDevices.enumerateDevices);
-}
+import { DecodeContinuouslyCallback } from '../common/DecodeContinuouslyCallback';
+import { HTMLCanvasElementLuminanceSource } from '../common/HTMLCanvasElementLuminanceSource';
+import { HTMLVisualMediaElement } from '../common/HTMLVisualMediaElement';
+import { IScannerControls } from '../common/IScannerControls';
+import { canEnumerateDevices, hasNavigator } from '../common/navigator-utils';
 
 /**
  * Base class for browser code reader.
@@ -781,6 +761,7 @@ export class BrowserCodeReader {
   ): Promise<Result> {
     return new Promise((resolve, reject) => {
 
+      // reuses the scan API, but returns at the first successful result
       this.scan(element, (result, error, controls) => {
 
         if (result) {
@@ -827,6 +808,7 @@ export class BrowserCodeReader {
      */
     const captureCanvasContext = captureCanvas.getContext('2d');
 
+    // cannot proceed w/o this
     if (!captureCanvasContext) {
       throw new Error('Couldn\'t create canvas for visual element scan.');
     }
@@ -834,14 +816,17 @@ export class BrowserCodeReader {
     let stopScan = false;
     let lastTimeoutId: number;
 
+    // can be called to break the scan loop
     const stop = () => {
       stopScan = true;
       clearTimeout(lastTimeoutId);
       if (finalizeCallback) { finalizeCallback(); }
     };
 
+    // created for extensibility
     const controls = { stop };
 
+    // this async loop allows infinite (or almost? maybe) scans
     const loop = () => {
 
       if (stopScan) {
@@ -873,6 +858,7 @@ export class BrowserCodeReader {
       }
     };
 
+    // starts the async loop
     loop();
 
     return controls;
