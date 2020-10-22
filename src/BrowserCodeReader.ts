@@ -382,11 +382,6 @@ export class BrowserCodeReader {
   }
 
   /**
-   * The stream output from camera.
-   */
-  protected stream: MediaStream | undefined;
-
-  /**
    * Creates an instance of BrowserCodeReader.
    * @param {Reader} reader The reader instance to decode the barcode
    * @param {number} [delayBetweenScanSuccess=500] Delay time between subsequent successful decode results.
@@ -516,16 +511,20 @@ export class BrowserCodeReader {
    *
    * @memberOf BrowserCodeReader
    */
-  public async decodeOnceFromStream(stream: MediaStream, videoSource?: string | HTMLVideoElement): Promise<Result> {
+  public async decodeOnceFromStream(stream: MediaStream, preview?: string | HTMLVideoElement): Promise<Result> {
 
-    this.reset();
+    const receivedPreview = Boolean(preview);
 
-    this.stream = stream;
+    const video = await BrowserCodeReader.attachStreamToVideo(stream, preview);
 
-    const video = await BrowserCodeReader.attachStreamToVideo(stream, videoSource);
-    const result = await this.decodeOnce(video);
-
-    return result;
+    try {
+      const result = await this.decodeOnce(video);
+      return result;
+    } finally {
+      if (!receivedPreview) {
+        BrowserCodeReader.cleanVideoSource(video);
+      }
+    }
   }
 
   /**
@@ -599,13 +598,22 @@ export class BrowserCodeReader {
     callbackFn: DecodeContinuouslyCallback,
   ): Promise<IScannerControls> {
 
-    this.reset();
-
-    this.stream = stream;
+    const previewReceived = Boolean(preview);
 
     const video = await BrowserCodeReader.attachStreamToVideo(stream, preview);
 
-    return this.decodeContinuously(video, callbackFn);
+    // we receive a stream from the user, it's not our job to dispose it
+
+    const finalizeCallback = () => {
+      if (!previewReceived) {
+        // @todo find a way to check if decodeContinuously ended
+        BrowserCodeReader.cleanVideoSource(video);
+      }
+    };
+
+    const controls = this.decodeContinuously(video, callbackFn, finalizeCallback);
+
+    return controls;
   }
 
   /**
@@ -789,6 +797,7 @@ export class BrowserCodeReader {
   public decodeContinuously(
     element: HTMLVisualMediaElement,
     callbackFn: DecodeContinuouslyCallback,
+    finalizeCallback?: (error?: Error) => void,
   ): IScannerControls {
 
     /**
@@ -811,6 +820,7 @@ export class BrowserCodeReader {
     const stop = () => {
       stopScan = true;
       clearTimeout(lastTimeoutId);
+      if (finalizeCallback) { finalizeCallback(); }
     };
 
     const controls = { stop };
@@ -827,18 +837,22 @@ export class BrowserCodeReader {
         const result = this.decodeFromCanvas(captureCanvas);
         callbackFn(result, undefined, controls);
         lastTimeoutId = window.setTimeout(loop, this.delayBetweenScanSuccess);
-      } catch (e) {
+      } catch (error) {
 
-        callbackFn(undefined, e, controls);
+        callbackFn(undefined, error, controls);
 
-        const isChecksumOrFormatError = e instanceof ChecksumException || e instanceof FormatException;
-        const isNotFound = e instanceof NotFoundException;
+        const isChecksumError = error instanceof ChecksumException;
+        const isFormatError = error instanceof FormatException;
+        const isNotFound = error instanceof NotFoundException;
 
-        if (isChecksumOrFormatError || isNotFound) {
+        if (isChecksumError || isFormatError || isNotFound) {
           // trying again
           lastTimeoutId = window.setTimeout(loop, this.delayBetweenScanAttempts);
+          return;
         }
 
+        // not trying again
+        if (finalizeCallback) { finalizeCallback(error); }
       }
     };
 
@@ -874,28 +888,6 @@ export class BrowserCodeReader {
    */
   public decodeBitmap(binaryBitmap: BinaryBitmap): Result {
     return this.reader.decode(binaryBitmap, this.hints);
-  }
-
-  /**
-   * Resets the code reader to the initial state. Cancels any ongoing barcode scanning from video or camera.
-   *
-   * @memberOf BrowserCodeReader
-   */
-  public reset() {
-
-    // stops the camera, preview and scan 🔴
-
-    this.stopStreams();
-  }
-
-  /**
-   * Stops the continuous scan and cleans the stream.
-   */
-  protected stopStreams(): void {
-    if (this.stream) {
-      this.stream.getVideoTracks().forEach((t) => t.stop());
-      this.stream = undefined;
-    }
   }
 
   private async _decodeOnLoadImage(element: HTMLImageElement): Promise<Result> {
