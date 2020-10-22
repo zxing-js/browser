@@ -15,30 +15,30 @@ import { HTMLVisualMediaElement } from './HTMLVisualMediaElement';
 import { IScannerControls } from './IScannerControls';
 
 /**
+ * If navigator is present.
+ */
+function hasNavigator() {
+  return typeof navigator !== 'undefined';
+}
+
+/**
+ * If mediaDevices under navigator is supported.
+ */
+function isMediaDevicesSuported() {
+  return hasNavigator() && !!navigator.mediaDevices;
+}
+
+/**
+ * If enumerateDevices under navigator is supported.
+ */
+function canEnumerateDevices() {
+  return !!(isMediaDevicesSuported() && navigator.mediaDevices.enumerateDevices);
+}
+
+/**
  * Base class for browser code reader.
  */
 export class BrowserCodeReader {
-
-  /**
-   * If navigator is present.
-   */
-  public get hasNavigator() {
-    return typeof navigator !== 'undefined';
-  }
-
-  /**
-   * If mediaDevices under navigator is supported.
-   */
-  public get isMediaDevicesSuported() {
-    return this.hasNavigator && !!navigator.mediaDevices;
-  }
-
-  /**
-   * If enumerateDevices under navigator is supported.
-   */
-  public get canEnumerateDevices() {
-    return !!(this.isMediaDevicesSuported && navigator.mediaDevices.enumerateDevices);
-  }
 
   /**
    * Defines what the videoElement src will be.
@@ -282,6 +282,57 @@ export class BrowserCodeReader {
   }
 
   /**
+   * Lists all the available video input devices.
+   */
+  public static async listVideoInputDevices(): Promise<MediaDeviceInfo[]> {
+
+    if (!hasNavigator()) {
+      throw new Error('Can\'t enumerate devices, navigator is not present.');
+    }
+
+    if (!canEnumerateDevices()) {
+      throw new Error('Can\'t enumerate devices, method not supported.');
+    }
+
+    const devices = await navigator.mediaDevices.enumerateDevices();
+
+    const videoDevices: MediaDeviceInfo[] = [];
+
+    for (const device of devices) {
+
+      const kind = device.kind as string === 'video' ? 'videoinput' : device.kind;
+
+      if (kind !== 'videoinput') {
+        continue;
+      }
+
+      const deviceId = device.deviceId || (device as any).id;
+      const label = device.label || `Video device ${videoDevices.length + 1}`;
+      const groupId = device.groupId;
+
+      const videoDevice = { deviceId, label, kind, groupId } as MediaDeviceInfo;
+
+      videoDevices.push(videoDevice);
+    }
+
+    return videoDevices;
+  }
+
+  /**
+   * Let's you find a device using it's Id.
+   */
+  public static async findDeviceById(deviceId: string): Promise<MediaDeviceInfo | undefined> {
+
+    const devices = await BrowserCodeReader.listVideoInputDevices();
+
+    if (!devices) {
+      return;
+    }
+
+    return devices.find((x) => x.deviceId === deviceId);
+  }
+
+  /**
    * Binds listeners and callbacks to the videoElement.
    *
    * @param element
@@ -398,57 +449,6 @@ export class BrowserCodeReader {
   ) { }
 
   /**
-   * Lists all the available video input devices.
-   */
-  public async listVideoInputDevices(): Promise<MediaDeviceInfo[]> {
-
-    if (!this.hasNavigator) {
-      throw new Error('Can\'t enumerate devices, navigator is not present.');
-    }
-
-    if (!this.canEnumerateDevices) {
-      throw new Error('Can\'t enumerate devices, method not supported.');
-    }
-
-    const devices = await navigator.mediaDevices.enumerateDevices();
-
-    const videoDevices: MediaDeviceInfo[] = [];
-
-    for (const device of devices) {
-
-      const kind = device.kind as string === 'video' ? 'videoinput' : device.kind;
-
-      if (kind !== 'videoinput') {
-        continue;
-      }
-
-      const deviceId = device.deviceId || (device as any).id;
-      const label = device.label || `Video device ${videoDevices.length + 1}`;
-      const groupId = device.groupId;
-
-      const videoDevice = { deviceId, label, kind, groupId } as MediaDeviceInfo;
-
-      videoDevices.push(videoDevice);
-    }
-
-    return videoDevices;
-  }
-
-  /**
-   * Let's you find a device using it's Id.
-   */
-  public async findDeviceById(deviceId: string): Promise<MediaDeviceInfo | undefined> {
-
-    const devices = await this.listVideoInputDevices();
-
-    if (!devices) {
-      return;
-    }
-
-    return devices.find((x) => x.deviceId === deviceId);
-  }
-
-  /**
    * In one attempt, tries to decode the barcode from the device specified by deviceId
    * while showing the video in the specified video element.
    *
@@ -541,7 +541,7 @@ export class BrowserCodeReader {
    * @memberOf BrowserCodeReader
    */
   public async decodeFromVideoDevice(
-    deviceId: string | null,
+    deviceId: string | undefined,
     previewElem: string | HTMLVideoElement | undefined,
     callbackFn: DecodeContinuouslyCallback,
   ): Promise<IScannerControls> {
