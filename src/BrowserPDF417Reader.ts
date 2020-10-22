@@ -1,4 +1,4 @@
-import { PDF417Reader } from '@zxing/library';
+import { DecodeHintType, PDF417Reader } from '@zxing/library';
 import { BrowserCodeReader } from './BrowserCodeReader';
 
 /**
@@ -7,9 +7,17 @@ import { BrowserCodeReader } from './BrowserCodeReader';
 export class BrowserPDF417Reader extends BrowserCodeReader {
   /**
    * Creates an instance of BrowserPDF417Reader.
-   * @param {number} [timeBetweenScansMillis=500] the time delay between subsequent decode tries
    */
-  public constructor(timeBetweenScansMillis: number = 500) {
-    super(new PDF417Reader(), timeBetweenScansMillis);
+  public constructor(
+    delayBetweenScanSuccess: number = 500,
+    hints?: Map<DecodeHintType, any>,
+    delayBetweenScanAttempts: number = 500,
+  ) {
+    super(
+      new PDF417Reader(),
+      delayBetweenScanSuccess,
+      hints,
+      delayBetweenScanAttempts,
+    );
   }
 }

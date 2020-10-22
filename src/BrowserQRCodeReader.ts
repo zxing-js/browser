@@ -1,4 +1,4 @@
-import { QRCodeReader } from '@zxing/library';
+import { DecodeHintType, QRCodeReader } from '@zxing/library';
 import { BrowserCodeReader } from './BrowserCodeReader';
 
 /**
@@ -7,9 +7,17 @@ import { BrowserCodeReader } from './BrowserCodeReader';
 export class BrowserQRCodeReader extends BrowserCodeReader {
   /**
    * Creates an instance of BrowserQRCodeReader.
-   * @param {number} [timeBetweenScansMillis=500] the time delay between subsequent decode tries
    */
-  public constructor(timeBetweenScansMillis: number = 500) {
-    super(new QRCodeReader(), timeBetweenScansMillis);
+  public constructor(
+    delayBetweenScanSuccess: number = 500,
+    hints?: Map<DecodeHintType, any>,
+    delayBetweenScanAttempts: number = 500,
+  ) {
+    super(
+      new QRCodeReader(),
+      delayBetweenScanSuccess,
+      hints,
+      delayBetweenScanAttempts,
+    );
   }
 }

@@ -11,12 +11,18 @@ export class BrowserMultiFormatReader extends BrowserCodeReader {
   protected readonly reader: MultiFormatReader;
 
   public constructor(
-    hints: Map<DecodeHintType, any> | undefined = undefined,
-    timeBetweenScansMillis: number = 500,
+    hints?: Map<DecodeHintType, any>,
+    delayBetweenScanSuccess: number = 500,
+    delayBetweenScanAttempts: number = 500,
   ) {
     const reader = new MultiFormatReader();
     reader.setHints(hints);
-    super(reader, timeBetweenScansMillis);
+    super(
+      reader,
+      delayBetweenScanSuccess,
+      hints,
+      delayBetweenScanAttempts,
+    );
     this.reader = reader;
   }
 

@@ -1,4 +1,4 @@
-import { DataMatrixReader } from '@zxing/library';
+import { DataMatrixReader, DecodeHintType } from '@zxing/library';
 import { BrowserCodeReader } from './BrowserCodeReader';
 
 /**
@@ -7,9 +7,17 @@ import { BrowserCodeReader } from './BrowserCodeReader';
 export class BrowserDatamatrixCodeReader extends BrowserCodeReader {
   /**
    * Creates an instance of BrowserQRCodeReader.
-   * @param {number} [timeBetweenScansMillis=500] the time delay between subsequent decode tries
    */
-  public constructor(timeBetweenScansMillis: number = 500) {
-    super(new DataMatrixReader(), timeBetweenScansMillis);
+  public constructor(
+    delayBetweenScanSuccess: number = 500,
+    hints?: Map<DecodeHintType, any>,
+    delayBetweenScanAttempts: number = 500,
+  ) {
+    super(
+      new DataMatrixReader(),
+      delayBetweenScanSuccess,
+      hints,
+      delayBetweenScanAttempts,
+    );
   }
 }
