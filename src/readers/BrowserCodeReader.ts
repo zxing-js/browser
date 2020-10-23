@@ -864,7 +864,7 @@ export class BrowserCodeReader {
         BrowserCodeReader.drawImageOnCanvas(captureCanvasContext, element);
         const result = this.decodeFromCanvas(captureCanvas);
         callbackFn(result, undefined, controls);
-        lastTimeoutId = window.setTimeout(loop, this.delayBetweenScanSuccess);
+        lastTimeoutId = window.setTimeout(loop, this.options.delayBetweenScanSuccess);
       } catch (error) {
 
         callbackFn(undefined, error, controls);
@@ -875,7 +875,7 @@ export class BrowserCodeReader {
 
         if (isChecksumError || isFormatError || isNotFound) {
           // trying again
-          lastTimeoutId = window.setTimeout(loop, this.delayBetweenScanAttempts);
+          lastTimeoutId = window.setTimeout(loop, this.options.delayBetweenScanAttempts);
           return;
         }
 
