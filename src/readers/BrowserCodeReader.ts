@@ -8,13 +8,19 @@ import {
   HybridBinarizer,
   NotFoundException,
   Reader,
-  Result,
+  Result
 } from '@zxing/library';
 import { DecodeContinuouslyCallback } from '../common/DecodeContinuouslyCallback';
 import { HTMLCanvasElementLuminanceSource } from '../common/HTMLCanvasElementLuminanceSource';
 import { HTMLVisualMediaElement } from '../common/HTMLVisualMediaElement';
 import { IScannerControls } from '../common/IScannerControls';
 import { canEnumerateDevices, hasNavigator } from '../common/navigator-utils';
+import { IBrowserCodeReaderOptions } from './IBrowserCodeReaderOptions';
+
+const defaultOptions: IBrowserCodeReaderOptions = {
+  delayBetweenScanAttempts: 500,
+  delayBetweenScanSuccess: 500,
+};
 
 /**
  * Base class for browser code reader.
@@ -430,18 +436,22 @@ export class BrowserCodeReader {
   }
 
   /**
+   * BrowserCodeReader specific configuration options.
+   */
+  protected readonly options: IBrowserCodeReaderOptions;
+
+  /**
    * Creates an instance of BrowserCodeReader.
    * @param {Reader} reader The reader instance to decode the barcode
-   * @param {number} [delayBetweenScanSuccess=500] Delay time between subsequent successful decode results.
    * @param hints Holds the hints the user sets for the Reader.
-   * @param {number} [delayBetweenScanAttempts=500] Delay time between decode attempts made by the scanner.
    */
   public constructor(
     protected readonly reader: Reader,
-    public readonly delayBetweenScanSuccess: number = 500,
     public readonly hints: Map<DecodeHintType, any> = new Map<DecodeHintType, any>(),
-    public readonly delayBetweenScanAttempts: number = 500,
-  ) { }
+    options: IBrowserCodeReaderOptions = {},
+  ) {
+    this.options = { ...defaultOptions, ...options };
+  }
 
   /**
    * Gets the BinaryBitmap for ya! (and decodes it)

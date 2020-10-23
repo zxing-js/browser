@@ -1,5 +1,6 @@
 import { AztecCodeReader, DecodeHintType } from '@zxing/library';
 import { BrowserCodeReader } from './BrowserCodeReader';
+import { IBrowserCodeReaderOptions } from './IBrowserCodeReaderOptions';
 
 /**
  * Aztec Code reader to use from browser.
@@ -12,15 +13,9 @@ export class BrowserAztecCodeReader extends BrowserCodeReader {
    * Creates an instance of BrowserAztecCodeReader.
    */
   public constructor(
-    delayBetweenScanSuccess: number = 500,
     hints?: Map<DecodeHintType, any>,
-    delayBetweenScanAttempts: number = 500,
+    options?: IBrowserCodeReaderOptions,
   ) {
-    super(
-      new AztecCodeReader(),
-      delayBetweenScanSuccess,
-      hints,
-      delayBetweenScanAttempts,
-    );
+    super(new AztecCodeReader(), hints, options);
   }
 }

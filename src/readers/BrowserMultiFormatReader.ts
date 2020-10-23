@@ -6,6 +6,7 @@ import {
   Result,
 } from '@zxing/library';
 import { BrowserCodeReader } from './BrowserCodeReader';
+import { IBrowserCodeReaderOptions } from './IBrowserCodeReaderOptions';
 
 export class BrowserMultiFormatReader extends BrowserCodeReader {
 
@@ -18,17 +19,11 @@ export class BrowserMultiFormatReader extends BrowserCodeReader {
 
   public constructor(
     hints?: Map<DecodeHintType, any>,
-    delayBetweenScanSuccess: number = 500,
-    delayBetweenScanAttempts: number = 500,
+    options?: IBrowserCodeReaderOptions,
   ) {
     const reader = new MultiFormatReader();
     reader.setHints(hints);
-    super(
-      reader,
-      delayBetweenScanSuccess,
-      hints,
-      delayBetweenScanAttempts,
-    );
+    super(reader, hints, options);
     this.reader = reader;
   }
 

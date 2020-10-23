@@ -6,7 +6,7 @@ export * from './common/HTMLVisualMediaElement';
 
 // readers
 export * from './readers/BrowserAztecCodeReader';
-export * from './readers/BrowserBarcodeReader';
+export * from './readers/BrowserMultiFormatOneDReader';
 export * from './readers/BrowserCodeReader';
 export * from './readers/BrowserDatamatrixCodeReader';
 export * from './readers/BrowserMultiFormatReader';

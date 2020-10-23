@@ -1,5 +1,6 @@
 import { DataMatrixReader, DecodeHintType } from '@zxing/library';
 import { BrowserCodeReader } from './BrowserCodeReader';
+import { IBrowserCodeReaderOptions } from './IBrowserCodeReaderOptions';
 
 /**
  * QR Code reader to use from browser.
@@ -9,15 +10,9 @@ export class BrowserDatamatrixCodeReader extends BrowserCodeReader {
    * Creates an instance of BrowserQRCodeReader.
    */
   public constructor(
-    delayBetweenScanSuccess: number = 500,
     hints?: Map<DecodeHintType, any>,
-    delayBetweenScanAttempts: number = 500,
+    options?: IBrowserCodeReaderOptions,
   ) {
-    super(
-      new DataMatrixReader(),
-      delayBetweenScanSuccess,
-      hints,
-      delayBetweenScanAttempts,
-    );
+    super(new DataMatrixReader(), hints, options);
   }
 }
