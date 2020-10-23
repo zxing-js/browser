@@ -54,6 +54,45 @@ export class BrowserCodeReader {
   }
 
   /**
+   * Enables or disables the torch in a media stream.
+   */
+  public static mediaStreamSetTorch(stream: MediaStream, onOff: boolean) {
+    const tracks = stream.getVideoTracks();
+    tracks.forEach((track) => track.applyConstraints({
+      advanced: [<any>{
+        torch: onOff,
+        fillLightMode: onOff ? 'torch' : 'none'
+      }]
+    }));
+  }
+
+  /**
+   * Checks if the stream has torch support.
+   */
+  public static async mediaStreamIsTorchCompatible(params: MediaStream) {
+
+    const tracks = params.getVideoTracks();
+
+    for (const track of tracks) {
+      if (await BrowserCodeReader.mediaStreamIsTorchCompatibleTrack(track)) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  /**
+   *
+   * @param track The media stream track that will be checked for compatibility.
+   */
+  public static async mediaStreamIsTorchCompatibleTrack(track: MediaStreamTrack) {
+    const imageCapture = new ImageCapture(track);
+    const capabilities = await imageCapture.getPhotoCapabilities();
+    return 'torch' in capabilities || ('fillLightMode' in capabilities && capabilities.fillLightMode.length !== 0);
+  }
+
+  /**
    * Checks if the given video element is currently playing.
    */
   public static isVideoPlaying(video: HTMLVideoElement): boolean {
@@ -571,7 +610,15 @@ export class BrowserCodeReader {
       }
     };
 
-    const controls = this.scan(video, callbackFn, finalizeCallback);
+    const isTorchAvailable = BrowserCodeReader.mediaStreamIsTorchCompatible(stream);
+
+    const controls: IScannerControls = {
+      ...this.scan(video, callbackFn, finalizeCallback),
+      switchTorch(onOff: boolean): void {
+        if (!isTorchAvailable) { return; }
+        BrowserCodeReader.mediaStreamSetTorch(stream, onOff);
+      },
+    };
 
     return controls;
   }
