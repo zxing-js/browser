@@ -1,5 +1,6 @@
 import {
   ArgumentException,
+  BarcodeFormat,
   BinaryBitmap,
   ChecksumException,
   DecodeHintType,
@@ -19,6 +20,15 @@ import { canEnumerateDevices, hasNavigator } from '../common/navigator-utils';
  * Base class for browser code reader.
  */
 export class BrowserCodeReader {
+
+  /**
+   * Allows to change the possible formats the decoder should
+   * search for while scanning some image. Useful for changing
+   * the possible formats during BrowserCodeReader::scan.
+   */
+  set possibleFormats(formats: BarcodeFormat[]) {
+    this.hints.set(DecodeHintType.POSSIBLE_FORMATS, formats);
+  }
 
   /**
    * Defines what the videoElement src will be.
@@ -429,7 +439,7 @@ export class BrowserCodeReader {
   public constructor(
     protected readonly reader: Reader,
     public readonly delayBetweenScanSuccess: number = 500,
-    public readonly hints?: Map<DecodeHintType, any>,
+    public readonly hints: Map<DecodeHintType, any> = new Map<DecodeHintType, any>(),
     public readonly delayBetweenScanAttempts: number = 500,
   ) { }
 

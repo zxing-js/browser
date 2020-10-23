@@ -1,4 +1,5 @@
 import {
+  BarcodeFormat,
   BinaryBitmap,
   DecodeHintType,
   MultiFormatReader,
@@ -7,6 +8,11 @@ import {
 import { BrowserCodeReader } from './BrowserCodeReader';
 
 export class BrowserMultiFormatReader extends BrowserCodeReader {
+
+  set possibleFormats(formats: BarcodeFormat[]) {
+    this.hints.set(DecodeHintType.POSSIBLE_FORMATS, formats);
+    this.reader.setHints(this.hints);
+  }
 
   protected readonly reader: MultiFormatReader;
 
