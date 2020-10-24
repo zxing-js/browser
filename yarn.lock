@@ -220,10 +220,10 @@
   resolved "https://registry.yarnpkg.com/@types/sizzle/-/sizzle-2.3.2.tgz#a811b8c18e2babab7d542b3365887ae2e4d9de47"
   integrity sha512-7EJYyKTL7tFR8+gDbB6Wwz/arpGa0Mywk1TJbNzKzHtzbwVmY4HR9WqS5VV7dsBUKQmPNr192jHr/VpBluj/hg==
 
-"@zxing/library@^0.18.1":
-  version "0.18.1"
-  resolved "https://registry.yarnpkg.com/@zxing/library/-/library-0.18.1.tgz#f35b1741f563dbd021cd367458cab0940ea9fe5f"
-  integrity sha512-IYk0qQgCpia2Ye7PBsy8p/o3IguiTKvT9itsv+BMR4MYIvygHWMM37ic8l5BXkHPYY9t/2P5fpZ0cCNCfLy6Rg==
+"@zxing/library@^0.18.2":
+  version "0.18.2"
+  resolved "https://registry.yarnpkg.com/@zxing/library/-/library-0.18.2.tgz#7c84375cd38ff6204f9e751f677c7c25d60fa847"
+  integrity sha512-4Do7Lp52g01FtQzbXDi8sbjGo12HTeakkkdO16vqlJzHR7HRxB55xzdUuLOcXRAxYw+pZgEDK7EZzmgAjk09YA==
   dependencies:
     ts-custom-error "^3.0.0"
   optionalDependencies:
