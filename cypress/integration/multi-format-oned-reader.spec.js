@@ -5,7 +5,7 @@ context('Actions', () => {
     cy.visit('http://localhost:8080/cypress/fixtures//index.html');
   });
 
-  describe('Instantiates Barcode Reader', () => {
+  describe('Instantiates Multi Format One Dimension Reader', () => {
     it('has ZXing imported into window', () => {
       cy.window().should('have.property', 'ZXingBrowser');
     });
@@ -13,7 +13,7 @@ context('Actions', () => {
       cy.window().then((win) => {
         // call whatever you want on your app's window
         // so your app methods must be exposed somehow
-        const codeReader = new win.ZXingBrowser.BrowserBarcodeReader();
+        const codeReader = new win.ZXingBrowser.BrowserMultiFormatOneDReader();
         expect(codeReader).to.not.be.null;
       });
     });
