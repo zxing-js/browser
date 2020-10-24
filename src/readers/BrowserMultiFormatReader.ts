@@ -34,4 +34,12 @@ export class BrowserMultiFormatReader extends BrowserCodeReader {
   public decodeBitmap(binaryBitmap: BinaryBitmap): Result {
     return this.reader.decodeWithState(binaryBitmap);
   }
+
+  /**
+   * Allows to change hints in runtime.
+   */
+  public setHints(hints: Map<DecodeHintType, any>) {
+    this.hints = hints;
+    this.reader.setHints(this.hints);
+  }
 }

@@ -8,7 +8,7 @@ import {
   HybridBinarizer,
   NotFoundException,
   Reader,
-  Result
+  Result,
 } from '@zxing/library';
 import { DecodeContinuouslyCallback } from '../common/DecodeContinuouslyCallback';
 import { HTMLCanvasElementLuminanceSource } from '../common/HTMLCanvasElementLuminanceSource';
@@ -378,6 +378,28 @@ export class BrowserCodeReader {
   }
 
   /**
+   * Unbinds a HTML video src property.
+   */
+  public static cleanVideoSource(videoElement: HTMLVideoElement): void {
+
+    if (!videoElement) {
+      return;
+    }
+
+    // forgets about that element 😢
+
+    try {
+      videoElement.srcObject = null;
+    } catch (err) {
+      videoElement.src = '';
+    }
+
+    if (videoElement) {
+      videoElement.removeAttribute('src');
+    }
+  }
+
+  /**
    * Binds listeners and callbacks to the videoElement.
    *
    * @param element The video element.
@@ -436,28 +458,6 @@ export class BrowserCodeReader {
     return videoElement;
   }
 
-  /**
-   * Unbinds a HTML video src property.
-   */
-  private static cleanVideoSource(videoElement: HTMLVideoElement): void {
-
-    if (!videoElement) {
-      return;
-    }
-
-    // forgets about that element 😢
-
-    try {
-      videoElement.srcObject = null;
-    } catch (err) {
-      videoElement.src = '';
-    }
-
-    if (videoElement) {
-      videoElement.removeAttribute('src');
-    }
-  }
-
   private static _waitImageLoad(element: HTMLImageElement): Promise<void> {
     return new Promise<void>((resolve) => {
 
@@ -486,7 +486,7 @@ export class BrowserCodeReader {
    */
   public constructor(
     protected readonly reader: Reader,
-    public readonly hints: Map<DecodeHintType, any> = new Map<DecodeHintType, any>(),
+    public hints: Map<DecodeHintType, any> = new Map<DecodeHintType, any>(),
     options: IBrowserCodeReaderOptions = {},
   ) {
     this.options = { ...defaultOptions, ...options };
