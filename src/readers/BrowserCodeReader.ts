@@ -61,7 +61,7 @@ export class BrowserCodeReader {
     tracks.forEach((track) => track.applyConstraints({
       advanced: [<any>{
         torch: onOff,
-        fillLightMode: onOff ? 'torch' : 'none'
+        fillLightMode: onOff ? 'flash' : 'off'
       }]
     }));
   }

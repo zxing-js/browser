@@ -1,6 +1,6 @@
 {
     "name": "@zxing/browser",
-    "version": "v0.0.1-beta.1",
+    "version": "v0.0.1-dev.5228f6d",
     "description": "ZXing for JS's browser layer.",
     "keywords": [
         "reader",
