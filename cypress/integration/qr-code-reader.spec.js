@@ -21,7 +21,7 @@ context('QR Code Test Actions', () => {
 
         const codeReader = new win.ZXingBrowser.BrowserQRCodeReader();
 
-        const videoInputDevices = await codeReader.listVideoInputDevices();
+        const videoInputDevices = await win.ZXingBrowser.BrowserCodeReader.listVideoInputDevices();
         const selectedDeviceId = videoInputDevices[0].deviceId;
 
         console.log(`Started decode from camera with id ${selectedDeviceId}`);
