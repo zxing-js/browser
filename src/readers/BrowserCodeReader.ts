@@ -55,15 +55,16 @@ export class BrowserCodeReader {
 
   /**
    * Enables or disables the torch in a media stream.
+   *
+   * @experimental This doesn't work accross all browsers and is still a Draft.
    */
-  public static mediaStreamSetTorch(stream: MediaStream, onOff: boolean) {
-    const tracks = stream.getVideoTracks();
-    tracks.forEach((track) => track.applyConstraints({
-      advanced: [<any>{
-        torch: onOff,
-        fillLightMode: onOff ? 'flash' : 'off'
-      }]
-    }));
+  public static async mediaStreamSetTorch(track: MediaStreamTrack, onOff: boolean) {
+    await track.applyConstraints({
+      advanced: [{
+        fillLightMode: onOff ? 'flash' : 'off',
+        torch: onOff ? true : false,
+      } as any],
+    });
   }
 
   /**
@@ -89,7 +90,7 @@ export class BrowserCodeReader {
   public static async mediaStreamIsTorchCompatibleTrack(track: MediaStreamTrack) {
     const imageCapture = new ImageCapture(track);
     const capabilities = await imageCapture.getPhotoCapabilities();
-    return 'torch' in capabilities || ('fillLightMode' in capabilities && capabilities.fillLightMode.length !== 0);
+    return 'torch' in capabilities || ('fillLightMode' in capabilities && capabilities.fillLightMode.length > 0);
   }
 
   /**
@@ -611,11 +612,14 @@ export class BrowserCodeReader {
     };
 
     const isTorchAvailable = BrowserCodeReader.mediaStreamIsTorchCompatible(stream);
+    const torchTrack = stream
+      .getVideoTracks()
+      ?.find((t) => BrowserCodeReader.mediaStreamIsTorchCompatibleTrack(t));
 
     const originalControls = this.scan(video, callbackFn, finalizeCallback);
-    const switchTorch = (onOff: boolean): void => {
+    const switchTorch = async (onOff: boolean) => {
       if (!isTorchAvailable) { return; }
-      BrowserCodeReader.mediaStreamSetTorch(stream, onOff);
+      await BrowserCodeReader.mediaStreamSetTorch(torchTrack, onOff);
     };
     const stop = () => {
       originalControls.stop();
