@@ -612,12 +612,20 @@ export class BrowserCodeReader {
 
     const isTorchAvailable = BrowserCodeReader.mediaStreamIsTorchCompatible(stream);
 
+    const originalControls = this.scan(video, callbackFn, finalizeCallback);
+    const switchTorch = (onOff: boolean): void => {
+      if (!isTorchAvailable) { return; }
+      BrowserCodeReader.mediaStreamSetTorch(stream, onOff);
+    };
+    const stop = () => {
+      originalControls.stop();
+      switchTorch(false);
+    };
+
     const controls: IScannerControls = {
-      ...this.scan(video, callbackFn, finalizeCallback),
-      switchTorch(onOff: boolean): void {
-        if (!isTorchAvailable) { return; }
-        BrowserCodeReader.mediaStreamSetTorch(stream, onOff);
-      },
+      ...originalControls,
+      stop,
+      switchTorch,
     };
 
     return controls;
