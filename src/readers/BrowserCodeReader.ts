@@ -292,8 +292,8 @@ export class BrowserCodeReader {
     try {
       await videoElement.play();
       return true;
-    } catch {
-      console.warn('It was not possible to play the video.');
+    } catch (error) {
+      console.warn('It was not possible to play the video.', error);
       return false;
     }
   }
