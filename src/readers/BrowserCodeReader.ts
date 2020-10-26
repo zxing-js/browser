@@ -634,26 +634,63 @@ export class BrowserCodeReader {
       }
     };
 
-    const isTorchAvailable = BrowserCodeReader.mediaStreamIsTorchCompatible(stream);
-    const torchTrack = stream
-      .getVideoTracks()
-      ?.find((t) => BrowserCodeReader.mediaStreamIsTorchCompatibleTrack(t));
-
     const originalControls = this.scan(video, callbackFn, finalizeCallback);
-    const switchTorch = async (onOff: boolean) => {
-      if (!isTorchAvailable) { return; }
-      await BrowserCodeReader.mediaStreamSetTorch(torchTrack, onOff);
-    };
-    const stop = () => {
-      originalControls.stop();
-      switchTorch(false);
-    };
+
+    const videoTracks = stream.getVideoTracks();
 
     const controls: IScannerControls = {
       ...originalControls,
-      stop,
-      switchTorch,
+
+      async streamVideoConstraintsApply(
+        constraints: MediaTrackConstraints,
+        trackFilter?: (track: MediaStreamTrack) => MediaStreamTrack[],
+      ) {
+        const tracks = trackFilter ? videoTracks.filter(trackFilter) : videoTracks;
+        for (const track of tracks) {
+          await track.applyConstraints(constraints);
+        }
+      },
+
+      streamVideoConstraintsGet(
+        trackFilter: (track: MediaStreamTrack) => MediaStreamTrack[],
+      ) {
+        return videoTracks.find(trackFilter).getConstraints();
+      },
+
+      streamVideoSettingsGet(
+        trackFilter: (track: MediaStreamTrack) => MediaStreamTrack[],
+      ) {
+        return videoTracks.find(trackFilter).getSettings();
+      },
+
+      streamVideoCapabilitiesGet(
+        trackFilter: (track: MediaStreamTrack) => MediaStreamTrack[],
+      ) {
+        return videoTracks.find(trackFilter).getCapabilities();
+      },
+
     };
+
+    const isTorchAvailable = BrowserCodeReader.mediaStreamIsTorchCompatible(stream);
+
+    if (isTorchAvailable) {
+
+      const torchTrack = videoTracks
+        ?.find((t) => BrowserCodeReader.mediaStreamIsTorchCompatibleTrack(t));
+
+      const switchTorch = async (onOff: boolean) => {
+        await BrowserCodeReader.mediaStreamSetTorch(torchTrack, onOff);
+      };
+
+      controls.switchTorch = switchTorch;
+
+      const stop = () => {
+        originalControls.stop();
+        switchTorch(false);
+      };
+
+      controls.stop = stop;
+    }
 
     return controls;
   }
