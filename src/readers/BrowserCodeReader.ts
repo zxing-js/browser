@@ -10,6 +10,7 @@ import {
   Reader,
   Result,
 } from '@zxing/library';
+import { ErrorCorrectionLevelValues } from '@zxing/library/esm/core/qrcode/decoder/ErrorCorrectionLevel';
 import { DecodeContinuouslyCallback } from '../common/DecodeContinuouslyCallback';
 import { HTMLCanvasElementLuminanceSource } from '../common/HTMLCanvasElementLuminanceSource';
 import { HTMLVisualMediaElement } from '../common/HTMLVisualMediaElement';
@@ -20,6 +21,7 @@ import { IBrowserCodeReaderOptions } from './IBrowserCodeReaderOptions';
 const defaultOptions: IBrowserCodeReaderOptions = {
   delayBetweenScanAttempts: 500,
   delayBetweenScanSuccess: 500,
+  tryPlayVideoTimeout: 5000,
 };
 
 /**
@@ -105,7 +107,7 @@ export class BrowserCodeReader {
    * Checks if the given video element is currently playing.
    */
   public static isVideoPlaying(video: HTMLVideoElement): boolean {
-    return video.currentTime > 0 && !video.paused && !video.ended && video.readyState > 2;
+    return video.currentTime > 0 && !video.paused && video.readyState > 2;
   }
 
   /**
@@ -284,6 +286,11 @@ export class BrowserCodeReader {
    */
   public static async tryPlayVideo(videoElement: HTMLVideoElement): Promise<boolean> {
 
+    if (videoElement?.ended) {
+      console.error('Trying to play video that has ended.');
+      return false;
+    }
+
     if (BrowserCodeReader.isVideoPlaying(videoElement)) {
       console.warn('Trying to play video that is already playing.');
       return true;
@@ -409,41 +416,47 @@ export class BrowserCodeReader {
   }
 
   /**
-   * Binds listeners and callbacks to the videoElement.
+   * Waits for a video to load and then hits play on it.
+   * To accomplish that, it binds listeners and callbacks to the video element.
    *
    * @param element The video element.
    * @param callbackFn Callback invoked when the video is played.
    */
-  protected static async playVideoOnLoad(element: HTMLVideoElement, callbackFn: EventListener): Promise<boolean> {
-
-    /**
-     * Should contain the current registered listener for video loaded-metadata,
-     * used to unregister that listener when needed.
-     */
-    const videoCanPlayListener: EventListener = () => BrowserCodeReader.tryPlayVideo(element);
-
-    element.addEventListener('canplay', videoCanPlayListener);
-    element.addEventListener('playing', callbackFn);
+  protected static async playVideoOnLoadAsync(element: HTMLVideoElement, timeout: number): Promise<boolean> {
 
     // if canplay was already fired, we won't know when to play, so just give it a try
     const isPlaying = await BrowserCodeReader.tryPlayVideo(element);
 
-    element.removeEventListener('canplay', videoCanPlayListener);
-    element.removeEventListener('playing', callbackFn);
+    if (isPlaying) {
+      return true;
+    }
 
-    return isPlaying;
-  }
+    return new Promise<boolean>((resolve, reject) => {
 
-  /**
-   * Waits for a video to load and then hits play on it.
-   */
-  protected static async playVideoOnLoadAsync(videoElement: HTMLVideoElement): Promise<void> {
-    return new Promise(async (resolve, reject) => {
-      try {
-        await BrowserCodeReader.playVideoOnLoad(videoElement, () => resolve());
-      } catch (ex) {
-        reject(ex);
-      }
+      // waits 3 seconds or rejects.
+      const timeoutId = setTimeout(() => {
+        if (BrowserCodeReader.isVideoPlaying(element)) {
+          // if video is playing then we had success, just ignore
+          return;
+        }
+        reject(false);
+        element.removeEventListener('canplay', videoCanPlayListener);
+      }, timeout);
+
+      /**
+       * Should contain the current registered listener for video loaded-metadata,
+       * used to unregister that listener when needed.
+       */
+      const videoCanPlayListener: EventListener = () => {
+        BrowserCodeReader.tryPlayVideo(element).then((hasPlayed) => {
+          clearTimeout(timeoutId);
+          element.removeEventListener('canplay', videoCanPlayListener);
+          resolve(hasPlayed);
+        });
+      };
+
+      // both should be unregistered after called
+      element.addEventListener('canplay', videoCanPlayListener);
     });
   }
 
@@ -456,13 +469,14 @@ export class BrowserCodeReader {
   protected static async attachStreamToVideo(
     stream: MediaStream,
     preview?: string | HTMLVideoElement,
+    previewPlayTimeout: number = 5000,
   ): Promise<HTMLVideoElement> {
 
     const videoElement = BrowserCodeReader.prepareVideoElement(preview);
 
     BrowserCodeReader.addVideoSource(videoElement, stream);
 
-    await BrowserCodeReader.playVideoOnLoadAsync(videoElement);
+    await BrowserCodeReader.playVideoOnLoadAsync(videoElement, previewPlayTimeout);
 
     return videoElement;
   }
@@ -608,8 +622,9 @@ export class BrowserCodeReader {
   ): Promise<IScannerControls> {
 
     const previewReceived = Boolean(preview);
+    const timeout = this.options.tryPlayVideoTimeout;
 
-    const video = await BrowserCodeReader.attachStreamToVideo(stream, preview);
+    const video = await BrowserCodeReader.attachStreamToVideo(stream, preview, timeout);
 
     // we receive a stream from the user, it's not our job to dispose it
 
@@ -688,8 +703,10 @@ export class BrowserCodeReader {
     // we do not create a video element
     const element = BrowserCodeReader.prepareVideoElement(source);
 
+    const timeout = this.options.tryPlayVideoTimeout;
+
     // plays the video
-    await BrowserCodeReader.playVideoOnLoadAsync(element);
+    await BrowserCodeReader.playVideoOnLoadAsync(element, timeout);
 
     // starts decoding after played the video
     return this.scan(element, callbackFn);
@@ -718,8 +735,10 @@ export class BrowserCodeReader {
       BrowserCodeReader.cleanVideoSource(element);
     };
 
+    const timeout = this.options.tryPlayVideoTimeout;
+
     // plays the video
-    await BrowserCodeReader.playVideoOnLoadAsync(element);
+    await BrowserCodeReader.playVideoOnLoadAsync(element, timeout);
 
     // starts decoding after played the video
     const controls = this.scan(element, callbackFn, finalizeCallback);
@@ -810,8 +829,10 @@ export class BrowserCodeReader {
     // we do not create a video element
     const element = BrowserCodeReader.prepareVideoElement(source);
 
+    const timeout = this.options.tryPlayVideoTimeout;
+
     // plays the video
-    await BrowserCodeReader.playVideoOnLoadAsync(element);
+    await BrowserCodeReader.playVideoOnLoadAsync(element, timeout);
 
     // starts decoding after played the video
     return await this.scanOneResult(element);

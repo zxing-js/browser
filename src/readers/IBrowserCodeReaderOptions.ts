@@ -3,4 +3,6 @@ export interface IBrowserCodeReaderOptions {
   delayBetweenScanSuccess?: number;
   /** Delay time between decode attempts made by the scanner. */
   delayBetweenScanAttempts?: number;
+  /** Timeout for wating the video 'canplay' event. */
+  tryPlayVideoTimeout?: number;
 }
