@@ -92,7 +92,7 @@ export class BrowserCodeReader {
   public static mediaStreamIsTorchCompatibleTrack(track: MediaStreamTrack) {
     try {
       const capabilities = track.getCapabilities();
-      return 'torch' in capabilities || ('fillLightMode' in capabilities && capabilities.fillLightMode.length > 0);
+      return 'torch' in capabilities;
     } catch (err) {
       // some browsers may not be compatible with ImageCapture
       // so we are ignoring this for now.
