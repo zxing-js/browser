@@ -72,12 +72,12 @@ export class BrowserCodeReader {
   /**
    * Checks if the stream has torch support.
    */
-  public static async mediaStreamIsTorchCompatible(params: MediaStream) {
+  public static mediaStreamIsTorchCompatible(params: MediaStream) {
 
     const tracks = params.getVideoTracks();
 
     for (const track of tracks) {
-      if (await BrowserCodeReader.mediaStreamIsTorchCompatibleTrack(track)) {
+      if (BrowserCodeReader.mediaStreamIsTorchCompatibleTrack(track)) {
         return true;
       }
     }
@@ -89,16 +89,15 @@ export class BrowserCodeReader {
    *
    * @param track The media stream track that will be checked for compatibility.
    */
-  public static async mediaStreamIsTorchCompatibleTrack(track: MediaStreamTrack) {
+  public static mediaStreamIsTorchCompatibleTrack(track: MediaStreamTrack) {
     try {
-      const imageCapture = new ImageCapture(track);
-      const capabilities = await imageCapture.getPhotoCapabilities();
+      const capabilities = track.getCapabilities();
       return 'torch' in capabilities || ('fillLightMode' in capabilities && capabilities.fillLightMode.length > 0);
     } catch (err) {
       // some browsers may not be compatible with ImageCapture
       // so we are ignoring this for now.
       console.error(err);
-      console.warn('Your browser may be not fully compatible with WebRTC and ImageCapture specs. Torch will not be available.');
+      console.warn('Your browser may be not fully compatible with WebRTC and/or ImageCapture specs. Torch will not be available.');
       return false;
     }
   }
