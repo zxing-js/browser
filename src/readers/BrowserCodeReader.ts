@@ -634,7 +634,6 @@ export class BrowserCodeReader {
     callbackFn: DecodeContinuouslyCallback,
   ): Promise<IScannerControls> {
 
-    const previewReceived = Boolean(preview);
     const timeout = this.options.tryPlayVideoTimeout;
 
     const video = await BrowserCodeReader.attachStreamToVideo(stream, preview, timeout);
@@ -642,16 +641,19 @@ export class BrowserCodeReader {
     // we receive a stream from the user, it's not our job to dispose it
 
     const stopStream = () => {
-      for (const track of stream.getTracks()) {
+      // stops video tracks and releases the stream reference
+      for (const track of stream.getVideoTracks()) {
         track.stop();
       }
+      stream = undefined;
     };
 
     const finalizeCallback = () => {
       stopStream();
-      if (!previewReceived) {
-        BrowserCodeReader.cleanVideoSource(video);
-      }
+      // this video was just a preview, so in order
+      // to release the stream we gotta stop sowing
+      // it (the stream) in the video element
+      BrowserCodeReader.cleanVideoSource(video);
     };
 
     const originalControls = this.scan(video, callbackFn, finalizeCallback);
@@ -663,7 +665,6 @@ export class BrowserCodeReader {
 
       stop() {
         originalControls.stop();
-        stopStream();
       },
 
       async streamVideoConstraintsApply(
@@ -711,7 +712,6 @@ export class BrowserCodeReader {
 
       const stop = () => {
         originalControls.stop();
-        stopStream();
         switchTorch(false);
       };
 
@@ -968,6 +968,10 @@ export class BrowserCodeReader {
 
   /**
    * Continuously decodes from video input.
+   *
+   * @param element HTML element to scan/decode from. It will not be disposed or destroyed.
+   * @param callbackFn Called after every scan attempt, being it successful or errored.
+   * @param finalizeCallback Called after scan proccess reaches the end or stop is called.
    */
   public scan(
     element: HTMLVisualMediaElement,
@@ -978,17 +982,22 @@ export class BrowserCodeReader {
     /**
      * The HTML canvas element, used to draw the video or image's frame for decoding.
      */
-    const captureCanvas = BrowserCodeReader.createCaptureCanvas(element);
+    let captureCanvas = BrowserCodeReader.createCaptureCanvas(element);
 
     /**
      * The HTML canvas element context.
      */
-    const captureCanvasContext = captureCanvas.getContext('2d');
+    let captureCanvasContext = captureCanvas.getContext('2d');
 
     // cannot proceed w/o this
     if (!captureCanvasContext) {
       throw new Error('Couldn\'t create canvas for visual element scan.');
     }
+
+    const disposeCanvas = () => {
+      captureCanvasContext = undefined;
+      captureCanvas = undefined;
+    };
 
     let stopScan = false;
     let lastTimeoutId: number;
@@ -997,6 +1006,7 @@ export class BrowserCodeReader {
     const stop = () => {
       stopScan = true;
       clearTimeout(lastTimeoutId);
+      disposeCanvas();
       if (finalizeCallback) { finalizeCallback(); }
     };
 
@@ -1031,6 +1041,7 @@ export class BrowserCodeReader {
         }
 
         // not trying again
+        disposeCanvas();
         if (finalizeCallback) { finalizeCallback(error); }
       }
     };
