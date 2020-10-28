@@ -520,9 +520,9 @@ export class BrowserCodeReader {
   public decode(element: HTMLVisualMediaElement): Result {
 
     // get binary bitmap for decode function
-    const binaryBitmap = BrowserCodeReader.createBinaryBitmapFromMediaElem(element);
+    const canvas = BrowserCodeReader.createCanvasFromMediaElement(element);
 
-    return this.decodeBitmap(binaryBitmap);
+    return this.decodeFromCanvas(canvas);
   }
 
   /**
@@ -571,14 +571,12 @@ export class BrowserCodeReader {
 
     const element = BrowserCodeReader.prepareImageElement();
 
-    const task = this._decodeOnLoadImage(element);
-
     // loads the image.
     element.src = url;
 
     try {
       // it waits the task so we can destroy the created image after
-      return await task;
+      return await this.decodeFromImageElement(element);
     } finally {
       // we created this element, so we destroy it
       BrowserCodeReader.destroyImageElement(element);
