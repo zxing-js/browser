@@ -641,7 +641,14 @@ export class BrowserCodeReader {
 
     // we receive a stream from the user, it's not our job to dispose it
 
+    const stopStream = () => {
+      for (const track of stream.getTracks()) {
+        track.stop();
+      }
+    };
+
     const finalizeCallback = () => {
+      stopStream();
       if (!previewReceived) {
         BrowserCodeReader.cleanVideoSource(video);
       }
@@ -653,6 +660,11 @@ export class BrowserCodeReader {
 
     const controls: IScannerControls = {
       ...originalControls,
+
+      stop() {
+        originalControls.stop();
+        stopStream();
+      },
 
       async streamVideoConstraintsApply(
         constraints: MediaTrackConstraints,
@@ -699,6 +711,7 @@ export class BrowserCodeReader {
 
       const stop = () => {
         originalControls.stop();
+        stopStream();
         switchTorch(false);
       };
 
