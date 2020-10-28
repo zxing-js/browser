@@ -480,10 +480,28 @@ export class BrowserCodeReader {
     return videoElement;
   }
 
+  /**
+   * Returns a Promise that resolves when the given image element loads.
+   */
   private static _waitImageLoad(element: HTMLImageElement): Promise<void> {
-    return new Promise<void>((resolve) => {
+    return new Promise<void>((resolve, reject) => {
+
+      const timeout = 10000;
+
+      // waits 10 seconds or rejects.
+      const timeoutId = setTimeout(() => {
+        if (BrowserCodeReader.isImageLoaded(element)) {
+          // if video is playing then we had success, just ignore
+          return;
+        }
+        // removes the listener
+        element.removeEventListener('load', imageLoadedListener);
+        // rejects the load
+        reject();
+      }, timeout);
 
       const imageLoadedListener = () => {
+        clearTimeout(timeoutId);
         // removes the listener
         element.removeEventListener('load', imageLoadedListener);
         // resolves the load
@@ -491,8 +509,6 @@ export class BrowserCodeReader {
       };
 
       element.addEventListener('load', imageLoadedListener);
-
-      // @note we can setTimeout to reject
     });
   }
 
