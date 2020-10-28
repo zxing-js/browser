@@ -616,7 +616,12 @@ export class BrowserCodeReader {
 
     const stream = await navigator.mediaDevices.getUserMedia(constraints);
 
-    return await this.decodeFromStream(stream, previewElem, callbackFn);
+    try {
+      return await this.decodeFromStream(stream, previewElem, callbackFn);
+    } catch (error) {
+      BrowserCodeReader.disposeMediaStream(stream);
+      throw error;
+    }
   }
 
   /**
