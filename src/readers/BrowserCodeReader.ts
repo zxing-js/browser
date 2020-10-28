@@ -513,6 +513,23 @@ export class BrowserCodeReader {
   }
 
   /**
+   * Checks if the `callbackFn` is defined, otherwise throws.
+   */
+  private static checkCallbackFnOrThrow(callbackFn: DecodeContinuouslyCallback) {
+    if (!callbackFn) {
+      throw new ArgumentException('`callbackFn` is a required parameter, you cannot capture results without it.');
+    }
+  }
+
+  /**
+   * Standard method to dispose a media stream object.
+   */
+  private static disposeMediaStream(stream: MediaStream) {
+    stream.getVideoTracks().forEach((x) => x.stop());
+    stream = undefined;
+  }
+
+  /**
    * BrowserCodeReader specific configuration options.
    */
   protected readonly options: IBrowserCodeReaderOptions;
@@ -614,6 +631,8 @@ export class BrowserCodeReader {
     callbackFn: DecodeContinuouslyCallback,
   ): Promise<IScannerControls> {
 
+    BrowserCodeReader.checkCallbackFnOrThrow(callbackFn);
+
     const stream = await navigator.mediaDevices.getUserMedia(constraints);
 
     try {
@@ -638,6 +657,8 @@ export class BrowserCodeReader {
     preview: string | HTMLVideoElement | undefined,
     callbackFn: DecodeContinuouslyCallback,
   ): Promise<IScannerControls> {
+
+    BrowserCodeReader.checkCallbackFnOrThrow(callbackFn);
 
     const timeout = this.options.tryPlayVideoTimeout;
 
@@ -743,6 +764,8 @@ export class BrowserCodeReader {
     callbackFn: DecodeContinuouslyCallback,
   ): Promise<IScannerControls> {
 
+    BrowserCodeReader.checkCallbackFnOrThrow(callbackFn);
+
     let videoConstraints: MediaTrackConstraints;
 
     if (!deviceId) {
@@ -763,6 +786,8 @@ export class BrowserCodeReader {
     source: string | HTMLVideoElement,
     callbackFn: DecodeContinuouslyCallback,
   ): Promise<IScannerControls> {
+
+    BrowserCodeReader.checkCallbackFnOrThrow(callbackFn);
 
     if (!source) {
       throw new ArgumentException('A video element must be provided.');
@@ -787,6 +812,8 @@ export class BrowserCodeReader {
     url: string,
     callbackFn: DecodeContinuouslyCallback,
   ): Promise<IScannerControls> {
+
+    BrowserCodeReader.checkCallbackFnOrThrow(callbackFn);
 
     if (!url) {
       throw new ArgumentException('An URL must be provided.');
@@ -983,6 +1010,8 @@ export class BrowserCodeReader {
     callbackFn: DecodeContinuouslyCallback,
     finalizeCallback?: (error?: Error) => void,
   ): IScannerControls {
+
+    BrowserCodeReader.checkCallbackFnOrThrow(callbackFn);
 
     /**
      * The HTML canvas element, used to draw the video or image's frame for decoding.
