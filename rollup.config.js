@@ -5,7 +5,6 @@ export default {
   plugins: [
     resolve(),
   ],
-  context: '(global || self || globalThis || window || undefined)',
   output: {
     format: 'umd',
     name: 'ZXingBrowser',
