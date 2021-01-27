@@ -15,11 +15,6 @@ class BrowserQRCodeSvgWriter {
   private static readonly QUIET_ZONE_SIZE = 4;
 
   /**
-   * SVG markup NameSpace
-   */
-  private static readonly SVG_NS = 'http://www.w3.org/2000/svg';
-
-  /**
    * Writes and renders a QRCode SVG element.
    *
    * @param contents
@@ -146,10 +141,10 @@ class BrowserQRCodeSvgWriter {
    */
   private createSVGElement(w: number, h: number): SVGSVGElement {
 
-    const svgElement = document.createElementNS(BrowserQRCodeSvgWriter.SVG_NS, 'svg');
+    const svgElement = document.createElementNS(svgNs, 'svg');
 
-    svgElement.setAttributeNS(svgNs, 'height', w.toString());
-    svgElement.setAttributeNS(svgNs, 'width', h.toString());
+    svgElement.setAttribute('height', w.toString());
+    svgElement.setAttribute('width', h.toString());
 
     return svgElement;
   }
@@ -164,13 +159,13 @@ class BrowserQRCodeSvgWriter {
    */
   private createSvgRectElement(x: number, y: number, w: number, h: number): SVGRectElement {
 
-    const rect = document.createElementNS(BrowserQRCodeSvgWriter.SVG_NS, 'rect');
+    const rect = document.createElementNS(svgNs, 'rect');
 
-    rect.setAttributeNS(svgNs, 'x', x.toString());
-    rect.setAttributeNS(svgNs, 'y', y.toString());
-    rect.setAttributeNS(svgNs, 'height', w.toString());
-    rect.setAttributeNS(svgNs, 'width', h.toString());
-    rect.setAttributeNS(svgNs, 'fill', '#000000');
+    rect.setAttribute('x', x.toString());
+    rect.setAttribute('y', y.toString());
+    rect.setAttribute('height', w.toString());
+    rect.setAttribute('width', h.toString());
+    rect.setAttribute('fill', '#000000');
 
     return rect;
   }
