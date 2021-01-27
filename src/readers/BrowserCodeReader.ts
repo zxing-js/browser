@@ -1034,7 +1034,7 @@ export class BrowserCodeReader {
     };
 
     let stopScan = false;
-    let lastTimeoutId: number;
+    let lastTimeoutId: null | ReturnType<typeof setTimeout>;
 
     // can be called to break the scan loop
     const stop = () => {
@@ -1059,7 +1059,7 @@ export class BrowserCodeReader {
         BrowserCodeReader.drawImageOnCanvas(captureCanvasContext, element);
         const result = this.decodeFromCanvas(captureCanvas);
         callbackFn(result, undefined, controls);
-        lastTimeoutId = window.setTimeout(loop, this.options.delayBetweenScanSuccess);
+        lastTimeoutId = setTimeout(loop, this.options.delayBetweenScanSuccess);
       } catch (error) {
 
         callbackFn(undefined, error, controls);
@@ -1070,7 +1070,7 @@ export class BrowserCodeReader {
 
         if (isChecksumError || isFormatError || isNotFound) {
           // trying again
-          lastTimeoutId = window.setTimeout(loop, this.options.delayBetweenScanAttempts);
+          lastTimeoutId = setTimeout(loop, this.options.delayBetweenScanAttempts);
           return;
         }
 
