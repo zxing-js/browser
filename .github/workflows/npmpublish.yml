@@ -79,9 +79,8 @@ jobs:
 
       - name: Install JQ for JSON handling
         run: sudo apt-get install jq
-
-      - name: Get repository name
-        run: echo ::set-env name=REPOSITORY_NAME::$(echo "$GITHUB_REPOSITORY" | awk -F / '{print $2}' | sed -e "s/:refs//")
+      
+      - run: echo "REPOSITORY_NAME=$(echo '${{ github.repository }}' | awk -F '/' '{print $1}')" >> $GITHUB_ENV
         shell: bash
 
       - name: Rename NPM package
