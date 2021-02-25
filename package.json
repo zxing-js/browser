@@ -1,6 +1,6 @@
 {
     "name": "@zxing/browser",
-    "version": "0.0.7",
+    "version": "0.0.8",
     "description": "ZXing for JS's browser layer.",
     "keywords": [
         "reader",
@@ -54,7 +54,7 @@
         "e2e:run": "cypress run --headless --browser chrome"
     },
     "peerDependencies": {
-        "@zxing/library": "^0.18.3"
+        "@zxing/library": "^0.18.4"
     },
     "optionalDependencies": {
         "@zxing/text-encoding": "^0.9.0"
