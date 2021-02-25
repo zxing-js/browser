@@ -45,7 +45,7 @@ Or just import an script tag from your favorite NPM registry connected CDN:
 
 ```html
 <script type="module">
-  import { BrowserQRCodeReader } from '@zxing/library';
+  import { BrowserQRCodeReader } from '@zxing/browser';
 
   const codeReader = new BrowserQRCodeReader();
 
@@ -58,7 +58,7 @@ Or just import an script tag from your favorite NPM registry connected CDN:
 
 ```html
 <script type="module">
-  import('@zxing/library').then({ BrowserQRCodeReader } => {
+  import('@zxing/browser').then({ BrowserQRCodeReader } => {
 
     const codeReader = new BrowserQRCodeReader();
 
@@ -73,7 +73,7 @@ Or just import an script tag from your favorite NPM registry connected CDN:
 ```html
 <script type="text/javascript" src="https://unpkg.com/requirejs"></script>
 <script type="text/javascript">
-  require(['@zxing/library'], ZXingBrowser => {
+  require(['@zxing/browser'], ZXingBrowser => {
 
     const codeReader = new ZXingBrowser.BrowserQRCodeReader();
 
@@ -193,5 +193,5 @@ You can also customize some options on the code reader at instantiation time. Mo
 
 [![Bless](https://cdn.rawgit.com/LunaGao/BlessYourCodeTag/master/tags/alpaca.svg)](http://lunagao.github.io/BlessYourCodeTag/)
 
-[0]: https://www.npmjs.com/package/@zxing/library
+[0]: https://www.npmjs.com/package/@zxing/browser
 [1]: https://github.com/zxing/zxing
