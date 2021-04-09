@@ -1,0 +1,13 @@
+{
+  "configurations": [
+    {
+      "type": "chrome",
+      "request": "attach",
+      "name": "Attach to Cypress Chrome",
+      "port": 9222,
+      "webRoot": "${workspaceFolder}",
+      "sourceMaps": true,
+      "skipFiles": ["cypress_runner.js"]
+    }
+  ]
+}

@@ -50,7 +50,8 @@
         "e2e:serve:start": "pm2 serve ./ 8080 --name zxing-browser-e2e",
         "e2e:serve:stop": "pm2 del zxing-browser-e2e",
         "e2e:test": "yarn e2e:serve:start && yarn e2e:run && yarn e2e:serve:stop",
-        "e2e:run": "cypress run --headless --browser chrome"
+        "e2e:run": "cypress run --headless --browser chrome",
+        "cypress:debug": "BROWSER=none CYPRESS_REMOTE_DEBUGGING_PORT=9222 cypress open"
     },
     "peerDependencies": {
         "@zxing/library": "^0.18.4"
