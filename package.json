@@ -37,8 +37,7 @@
     "module": "./esm/index.js",
     "typings": "./esm/index.d.ts",
     "esnext": "./es2015/index.js",
-    "browser": "./umd/zxing-browser.js",
-    "browser:min": "./umd/zxing-browser.min.js",
+    "unpkg": "./umd/zxing-browser.min.js",
     "scripts": {
         "clean": "./node_modules/.bin/shx rm -rf umd esm esm5",
         "build": "yarn clean && yarn build:es2015 && yarn build:esm && yarn build:cjs && yarn build:umd && yarn build:umd:min && yarn build:copy",
