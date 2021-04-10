@@ -21,7 +21,7 @@ module.exports = (on, config) => {
   on('before:browser:launch', (browser = {}, launchOptions) => {
     if (browser.family === 'chromium' && browser.name !== 'electron') {
       // Mac/Linux
-      launchOptions.args.push('--use-file-for-fake-video-capture=cypress/fixtures/qrcode-video.mjpeg')
+      launchOptions.args.push('--use-file-for-fake-video-capture=cypress/fixtures/qrcode-video.mjpeg');
 
       // Windows
       // launchOptions.args.push('--use-file-for-fake-video-capture=cypress\\fixtures\\qrcode-video.mp4');
@@ -29,6 +29,11 @@ module.exports = (on, config) => {
       // generate Y4M file
       // https://testrtc.com/y4m-video-chrome/
     }
+
+    // this should allow you to debug while testing
+    // if (browser.name === 'chrome') {
+    //   launchOptions.args.push('--remote-debugging-port=9222');
+    // }
 
     return launchOptions;
   });

@@ -525,7 +525,7 @@ export class BrowserCodeReader {
    * Standard method to dispose a media stream object.
    */
   private static disposeMediaStream(stream: MediaStream) {
-    stream.getVideoTracks().forEach((x) => x.stop());
+    stream.getVideoTracks().forEach(x => x.stop());
     stream = undefined;
   }
 
@@ -664,20 +664,13 @@ export class BrowserCodeReader {
 
     const video = await BrowserCodeReader.attachStreamToVideo(stream, preview, timeout);
 
-    // we receive a stream from the user, it's not our job to dispose it
-
-    const stopStream = () => {
-      // stops video tracks and releases the stream reference
-      for (const track of stream.getVideoTracks()) {
-        track.stop();
-      }
-      stream = undefined;
-    };
+    // IF we receive a stream from the user, it's not our job to dispose it
 
     const finalizeCallback = () => {
-      stopStream();
+      // stops video tracks and releases the stream reference
+      BrowserCodeReader.disposeMediaStream(stream);
       // this video was just a preview, so in order
-      // to release the stream we gotta stop sowing
+      // to release the stream we gotta stop showing
       // it (the stream) in the video element
       BrowserCodeReader.cleanVideoSource(video);
     };
