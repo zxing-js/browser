@@ -183,7 +183,7 @@ That's it for now.
 - `BrowserMultiFormatOneDCodeReader`
 - `BrowserMultiFormatCodeReader` (2D + 1D)
 - `BrowserPDF417CodeReader`
-- `BrowserQRCodeCodeReader`
+- `BrowserQRCodeReader`
 
 ### Customize `BrowserCodeReader` options
 
