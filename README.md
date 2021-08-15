@@ -180,7 +180,7 @@ That's it for now.
 - `BrowserAztecCodeReader`
 - `BrowserCodeReader` (abstract, needs to be extend for use)
 - `BrowserDatamatrixCodeReader`
-- `BrowserMultiFormatOneDCodeReader`
+- `BrowserMultiFormatOneDReader`
 - `BrowserMultiFormatCodeReader` (2D + 1D)
 - `BrowserPDF417CodeReader`
 - `BrowserQRCodeCodeReader`
