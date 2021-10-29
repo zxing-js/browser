@@ -1112,21 +1112,11 @@ export class BrowserCodeReader {
   }
 
   /**
-   * Get MediaStream from browser to be used. It allows to reuse media streams that are active and removes media
-   * streams that are not active from tracker.
+   * Get MediaStream from browser to be used.
    * @param constraints constraints the media stream constraints to get s valid media stream to decode from.
    * @private For private use.
    */
   private async getUserMedia(constraints: MediaStreamConstraints): Promise<MediaStream> {
-    // allows streams to be reused and prevent possible memory leaks.
-    if (BrowserCodeReader.streamTracker.length !== 0) {
-      const firstActive = BrowserCodeReader.streamTracker.find((mediaStream) => mediaStream.active);
-      if (firstActive) {
-        return firstActive;
-      } else {
-        BrowserCodeReader.releaseAllStreams();
-      }
-    }
     const stream = await navigator.mediaDevices.getUserMedia(constraints);
     BrowserCodeReader.streamTracker.push(stream);
     return stream;
