@@ -10,7 +10,6 @@ import {
   Reader,
   Result,
 } from '@zxing/library';
-import { ErrorCorrectionLevelValues } from '@zxing/library/esm/core/qrcode/decoder/ErrorCorrectionLevel';
 import { DecodeContinuouslyCallback } from '../common/DecodeContinuouslyCallback';
 import { HTMLCanvasElementLuminanceSource } from '../common/HTMLCanvasElementLuminanceSource';
 import { HTMLVisualMediaElement } from '../common/HTMLVisualMediaElement';
@@ -96,7 +95,9 @@ export class BrowserCodeReader {
     } catch (err) {
       // some browsers may not be compatible with ImageCapture
       // so we are ignoring this for now.
+      // tslint:disable-next-line:no-console
       console.error(err);
+      // tslint:disable-next-line:no-console
       console.warn('Your browser may be not fully compatible with WebRTC and/or ImageCapture specs. Torch will not be available.');
       return false;
     }
@@ -415,6 +416,19 @@ export class BrowserCodeReader {
   }
 
   /**
+   * Stops all media streams that are created.
+   */
+  public static releaseAllStreams() {
+    if (BrowserCodeReader.streamTracker.length !== 0) {
+      // tslint:disable-next-line:no-console
+      BrowserCodeReader.streamTracker.forEach((mediaStream) => {
+        mediaStream.getTracks().forEach((track) => track.stop());
+     });
+    }
+    BrowserCodeReader.streamTracker = [];
+  }
+
+  /**
    * Waits for a video to load and then hits play on it.
    * To accomplish that, it binds listeners and callbacks to the video element.
    *
@@ -481,6 +495,12 @@ export class BrowserCodeReader {
   }
 
   /**
+   * Keeps track to created media streams.
+   * @private there is no need this array to be accessible from outside.
+   */
+  private static streamTracker: MediaStream[] = [];
+
+  /**
    * Returns a Promise that resolves when the given image element loads.
    */
   private static _waitImageLoad(element: HTMLImageElement): Promise<void> {
@@ -525,7 +545,7 @@ export class BrowserCodeReader {
    * Standard method to dispose a media stream object.
    */
   private static disposeMediaStream(stream: MediaStream) {
-    stream.getVideoTracks().forEach(x => x.stop());
+    stream.getVideoTracks().forEach((x) => x.stop());
     stream = undefined;
   }
 
@@ -633,8 +653,7 @@ export class BrowserCodeReader {
 
     BrowserCodeReader.checkCallbackFnOrThrow(callbackFn);
 
-    const stream = await navigator.mediaDevices.getUserMedia(constraints);
-
+    const stream = await this.getUserMedia(constraints);
     try {
       return await this.decodeFromStream(stream, previewElem, callbackFn);
     } catch (error) {
@@ -768,7 +787,6 @@ export class BrowserCodeReader {
     }
 
     const constraints: MediaStreamConstraints = { video: videoConstraints };
-
     return await this.decodeFromConstraints(constraints, previewElem, callbackFn);
   }
 
@@ -849,7 +867,7 @@ export class BrowserCodeReader {
     videoSource?: string | HTMLVideoElement,
   ): Promise<Result> {
 
-    const stream = await navigator.mediaDevices.getUserMedia(constraints);
+    const stream = await this.getUserMedia(constraints);
 
     return await this.decodeOnceFromStream(stream, videoSource);
   }
@@ -1091,5 +1109,16 @@ export class BrowserCodeReader {
     }
 
     return this.decode(element);
+  }
+
+  /**
+   * Get MediaStream from browser to be used.
+   * @param constraints constraints the media stream constraints to get s valid media stream to decode from.
+   * @private For private use.
+   */
+  private async getUserMedia(constraints: MediaStreamConstraints): Promise<MediaStream> {
+    const stream = await navigator.mediaDevices.getUserMedia(constraints);
+    BrowserCodeReader.streamTracker.push(stream);
+    return stream;
   }
 }
