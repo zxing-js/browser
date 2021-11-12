@@ -33,6 +33,7 @@ export class HTMLCanvasElementLuminanceSource extends LuminanceSource {
         // .299R + 0.587G + 0.114B (YUV/YIQ for PAL and NTSC),
         // (306*R) >> 10 is approximately equal to R*0.299, and so on.
         // 0x200 >> 10 is 0.5, it implements rounding.
+        // tslint:disable-next-line:no-bitwise
         gray = (306 * pixelR + 601 * pixelG + 117 * pixelB + 0x200) >> 10;
       }
       grayscaleBuffer[j] = gray;
