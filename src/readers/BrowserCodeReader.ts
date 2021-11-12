@@ -57,7 +57,7 @@ export class BrowserCodeReader {
   /**
    * Enables or disables the torch in a media stream.
    *
-   * @experimental This doesn't work accross all browsers and is still a Draft.
+   * @experimental This doesn't work across all browsers and is still a Draft.
    */
   public static async mediaStreamSetTorch(track: MediaStreamTrack, onOff: boolean) {
     await track.applyConstraints({
@@ -199,7 +199,7 @@ export class BrowserCodeReader {
    */
   public static isImageLoaded(img: HTMLImageElement) {
     // During the onload event, IE correctly identifies any images that
-    // weren’t downloaded as not complete. Others should too. Gecko-based
+    // weren't downloaded as not complete. Others should too. Gecko-based
     // browsers act like NS4 in that they report this incorrectly.
     if (!img.complete) {
       return false;
@@ -231,7 +231,7 @@ export class BrowserCodeReader {
   }
 
   /**
-   * Ovewriting this allows you to manipulate the snapshot image in anyway you want before decode.
+   * Overwriting this allows you to manipulate the snapshot image in anyway you want before decode.
    */
   public static drawImageOnCanvas(canvasElementContext: CanvasRenderingContext2D, srcElement: HTMLVisualMediaElement) {
     canvasElementContext.drawImage(srcElement, 0, 0);
@@ -252,7 +252,7 @@ export class BrowserCodeReader {
       };
     }
 
-    throw new Error('Couldn\'t find the Source\'s dimentions!');
+    throw new Error('Couldn\'t find the Source\'s dimensions!');
   }
 
   /**
@@ -765,7 +765,7 @@ export class BrowserCodeReader {
    *
    * @param {string|null} [deviceId] the id of one of the devices obtained after calling
    *  getVideoInputDevices. Can be undefined, in this case it will decode from one of the
-   *  available devices, preffering the main camera (environment facing) if available.
+   *  available devices, preferring the main camera (environment facing) if available.
    * @param {string|HTMLVideoElement|null} [video] the video element in page where to show the video
    *  while decoding. Can be either an element id or directly an HTMLVideoElement. Can be undefined,
    *  in which case no video will be shown.
@@ -903,7 +903,7 @@ export class BrowserCodeReader {
    *
    * @param deviceId the id of one of the devices obtained after calling getVideoInputDevices.
    *  Can be undefined, in this case it will decode from one of the available devices,
-   *  preffering the main camera (environment facing) if available.
+   *  preferring the main camera (environment facing) if available.
    * @param videoSource the video element in page where to show the video while decoding.
    *  Can be either an element id or directly an HTMLVideoElement. Can be undefined,
    *  in which case no video will be shown.
@@ -1014,7 +1014,7 @@ export class BrowserCodeReader {
    *
    * @param element HTML element to scan/decode from. It will not be disposed or destroyed.
    * @param callbackFn Called after every scan attempt, being it successful or errored.
-   * @param finalizeCallback Called after scan proccess reaches the end or stop is called.
+   * @param finalizeCallback Called after scan process reaches the end or stop is called.
    */
   public scan(
     element: HTMLVisualMediaElement,

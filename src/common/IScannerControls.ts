@@ -1,10 +1,10 @@
 export interface IScannerControls {
   /**
-   * Stops the scan proccess loop.
+   * Stops the scan process loop.
    */
   stop: () => void;
   /**
-   * @experimental This is higly unstable and Torch support is not ready on browsers. Use at YOUR OWN risk.
+   * @experimental This is highly unstable and Torch support is not ready on browsers. Use at YOUR OWN risk.
    */
   switchTorch?: (onOff: boolean) => Promise<void>;
   /**

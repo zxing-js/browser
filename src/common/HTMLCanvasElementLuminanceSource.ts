@@ -139,7 +139,7 @@ export class HTMLCanvasElementLuminanceSource extends LuminanceSource {
     tempCanvasElement.height = newHeight;
 
     const tempContext = tempCanvasElement.getContext('2d');
-    if (!tempContext) { throw new Error('Could not create a Convas Context element.'); }
+    if (!tempContext) { throw new Error('Could not create a Canvas Context element.'); }
 
     // Draw at center of temp canvas to prevent clipping of image data
     tempContext.translate(newWidth / 2, newHeight / 2);
