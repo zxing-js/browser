@@ -142,9 +142,11 @@ class BrowserQRCodeSvgWriter {
   private createSVGElement(w: number, h: number): SVGSVGElement {
 
     const svgElement = document.createElementNS(svgNs, 'svg');
-
-    svgElement.setAttribute('height', w.toString());
-    svgElement.setAttribute('width', h.toString());
+    const width = w.toString();
+    const height = h.toString();
+    svgElement.setAttribute('height', height);
+    svgElement.setAttribute('width', width);
+    svgElement.setAttribute('viewBox', "0 0 " + width + " " + height);
 
     return svgElement;
   }
