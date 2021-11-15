@@ -287,11 +287,13 @@ export class BrowserCodeReader {
   public static async tryPlayVideo(videoElement: HTMLVideoElement): Promise<boolean> {
 
     if (videoElement?.ended) {
+      // tslint:disable-next-line:no-console
       console.error('Trying to play video that has ended.');
       return false;
     }
 
     if (BrowserCodeReader.isVideoPlaying(videoElement)) {
+      // tslint:disable-next-line:no-console
       console.warn('Trying to play video that is already playing.');
       return true;
     }
@@ -300,6 +302,7 @@ export class BrowserCodeReader {
       await videoElement.play();
       return true;
     } catch (error) {
+      // tslint:disable-next-line:no-console
       console.warn('It was not possible to play the video.', error);
       return false;
     }
