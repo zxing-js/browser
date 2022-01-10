@@ -43,7 +43,7 @@ export class HTMLCanvasElementLuminanceSource extends LuminanceSource {
 
   private buffer: Uint8ClampedArray;
 
-  private tempCanvasElement?: HTMLCanvasElement;
+  private tempCanvasElement?: HTMLCanvasElement = null;
 
   public constructor(private canvas: HTMLCanvasElement) {
     super(canvas.width, canvas.height);
