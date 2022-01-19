@@ -181,7 +181,7 @@ That's it for now.
 - `BrowserCodeReader` (abstract, needs to be extend for use)
 - `BrowserDatamatrixCodeReader`
 - `BrowserMultiFormatOneDReader`
-- `BrowserMultiFormatCodeReader` (2D + 1D)
+- `BrowserMultiFormatReader` (2D + 1D)
 - `BrowserPDF417CodeReader`
 - `BrowserQRCodeReader`
 
