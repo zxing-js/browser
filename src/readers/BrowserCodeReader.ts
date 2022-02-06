@@ -49,8 +49,7 @@ export class BrowserCodeReader {
       // @note Throws Exception if interrupted by a new loaded request
       videoElement.srcObject = stream;
     } catch (err) {
-      // @note Avoid using this in new browsers, as it is going away.
-      videoElement.src = URL.createObjectURL(stream);
+      console.error("got interrupted by new loading request")
     }
   }
 
