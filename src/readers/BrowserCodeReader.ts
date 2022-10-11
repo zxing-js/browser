@@ -703,7 +703,7 @@ export class BrowserCodeReader {
     const controls: IScannerControls = {
       ...originalControls,
 
-      stop() {
+      async stop() {
         originalControls.stop();
       },
 
@@ -750,9 +750,9 @@ export class BrowserCodeReader {
 
       controls.switchTorch = switchTorch;
 
-      const stop = () => {
+      const stop = async () => {
         originalControls.stop();
-        switchTorch(false);
+        await switchTorch(false);
       };
 
       controls.stop = stop;
