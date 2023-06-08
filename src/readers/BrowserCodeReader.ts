@@ -752,7 +752,7 @@ export class BrowserCodeReader {
 
       const stop = () => {
         originalControls.stop();
-        switchTorch(false);
+        await switchTorch(false);
       };
 
       controls.stop = stop;
