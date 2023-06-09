@@ -10,12 +10,12 @@ import {
   Reader,
   Result,
 } from '@zxing/library';
-import { DecodeContinuouslyCallback } from '../common/DecodeContinuouslyCallback';
-import { HTMLCanvasElementLuminanceSource } from '../common/HTMLCanvasElementLuminanceSource';
-import { HTMLVisualMediaElement } from '../common/HTMLVisualMediaElement';
-import { IScannerControls } from '../common/IScannerControls';
-import { canEnumerateDevices, hasNavigator } from '../common/navigator-utils';
-import { IBrowserCodeReaderOptions } from './IBrowserCodeReaderOptions';
+import {DecodeContinuouslyCallback} from '../common/DecodeContinuouslyCallback';
+import {HTMLCanvasElementLuminanceSource} from '../common/HTMLCanvasElementLuminanceSource';
+import {HTMLVisualMediaElement} from '../common/HTMLVisualMediaElement';
+import {IScannerControls} from '../common/IScannerControls';
+import {canEnumerateDevices, hasNavigator} from '../common/navigator-utils';
+import {IBrowserCodeReaderOptions} from './IBrowserCodeReaderOptions';
 
 const defaultOptions: IBrowserCodeReaderOptions = {
   delayBetweenScanAttempts: 500,
@@ -750,12 +750,10 @@ export class BrowserCodeReader {
 
       controls.switchTorch = switchTorch;
 
-      const stop = () => {
+      controls.stop = async () => {
         originalControls.stop();
         await switchTorch(false);
       };
-
-      controls.stop = stop;
     }
 
     return controls;
