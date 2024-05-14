@@ -315,7 +315,7 @@ export class BrowserCodeReader {
   public static createCanvasFromMediaElement(mediaElement: HTMLVisualMediaElement) {
 
     const canvas = BrowserCodeReader.createCaptureCanvas(mediaElement);
-    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    const ctx = canvas.getContext('2d');
 
     if (!ctx) {
       throw new Error('Couldn\'t find Canvas 2D Context.');
@@ -1032,8 +1032,13 @@ export class BrowserCodeReader {
     /**
      * The HTML canvas element context.
      */
-    let captureCanvasContext = captureCanvas.getContext('2d');
-
+    let captureCanvasContext;
+    try {
+        captureCanvasContext = elem.getContext('2d', { willReadFrequently: true }) as CanvasRenderingContext2D;
+    } catch (e) {
+        captureCanvasContext = elem.getContext('2d');
+    }
+    
     // cannot proceed w/o this
     if (!captureCanvasContext) {
       throw new Error('Couldn\'t create canvas for visual element scan.');
