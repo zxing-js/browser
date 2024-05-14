@@ -315,7 +315,7 @@ export class BrowserCodeReader {
   public static createCanvasFromMediaElement(mediaElement: HTMLVisualMediaElement) {
 
     const canvas = BrowserCodeReader.createCaptureCanvas(mediaElement);
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
 
     if (!ctx) {
       throw new Error('Couldn\'t find Canvas 2D Context.');
