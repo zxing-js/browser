@@ -54,7 +54,7 @@
         "cypress:debug": "BROWSER=none CYPRESS_REMOTE_DEBUGGING_PORT=9222 cypress open"
     },
     "peerDependencies": {
-        "@zxing/library": "^0.20.0"
+        "@zxing/library": "^0.21.0"
     },
     "optionalDependencies": {
         "@zxing/text-encoding": "^0.9.0"
