@@ -1032,13 +1032,13 @@ export class BrowserCodeReader {
     /**
      * The HTML canvas element context.
      */
-    let captureCanvasContext;
+    let captureCanvasContext: any;
     try {
-        captureCanvasContext = elem.getContext('2d', { willReadFrequently: true }) as CanvasRenderingContext2D;
+        captureCanvasContext = captureCanvas.getContext('2d', { willReadFrequently: true }) as CanvasRenderingContext2D;
     } catch (e) {
-        captureCanvasContext = elem.getContext('2d');
+        captureCanvasContext = captureCanvas.getContext('2d');
     }
-    
+
     // cannot proceed w/o this
     if (!captureCanvasContext) {
       throw new Error('Couldn\'t create canvas for visual element scan.');

@@ -282,10 +282,10 @@
   dependencies:
     "@types/node" "*"
 
-"@zxing/library@^0.20.0":
-  version "0.20.0"
-  resolved "https://registry.yarnpkg.com/@zxing/library/-/library-0.20.0.tgz#11bc411b87693015389555c589da61532879be7b"
-  integrity sha512-6Ev6rcqVjMakZFIDvbUf0dtpPGeZMTfyxYg4HkVWioWeN7cRcnUWT3bU6sdohc82O1nPXcjq6WiGfXX2Pnit6A==
+"@zxing/library@^0.21.0":
+  version "0.21.0"
+  resolved "https://registry.yarnpkg.com/@zxing/library/-/library-0.21.0.tgz#f20377c394f7023d11a740697cc57dd70b49eaa9"
+  integrity sha512-2+DFYM6NLl+ZXXUbDOkmVn4TAAOgTniEx5MJD2kStujcxSl6j9CfAgIT8DcsBYIlT5DW7oeiShEzWZjpL0hNOw==
   dependencies:
     ts-custom-error "^3.2.1"
   optionalDependencies:
