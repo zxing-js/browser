@@ -10,7 +10,14 @@ export class HTMLCanvasElementLuminanceSource extends LuminanceSource {
   private static DEGREE_TO_RADIANS = Math.PI / 180;
 
   private static makeBufferFromCanvasImageData(canvas: HTMLCanvasElement): Uint8ClampedArray {
-    const canvasCtx = canvas.getContext('2d');
+    let canvasCtx;
+
+    try {
+      canvasCtx = canvas.getContext('2d', { willReadFrequently: true });
+    } catch (e) {
+      canvasCtx = canvas.getContext('2d');
+    }
+
     if (!canvasCtx) { throw new Error('Couldn\'t get canvas context.'); }
     const imageData = canvasCtx.getImageData(0, 0, canvas.width, canvas.height);
     return HTMLCanvasElementLuminanceSource.toGrayscaleBuffer(imageData.data, canvas.width, canvas.height);
