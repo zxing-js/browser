@@ -58,7 +58,7 @@ Or just import an script tag from your favorite NPM registry connected CDN:
 
 ```html
 <script type="module">
-  import('@zxing/browser').then({ BrowserQRCodeReader } => {
+  import('@zxing/browser').then(({ BrowserQRCodeReader }) => {
 
     const codeReader = new BrowserQRCodeReader();
 
@@ -178,11 +178,11 @@ That's it for now.
 ### List of browser readers
 
 - `BrowserAztecCodeReader`
-- `BrowserCodeReader` (abstract, needs to be extend for use)
+- `BrowserCodeReader` (base class, requires a `Reader` instance — use a subclass for convenience)
 - `BrowserDatamatrixCodeReader`
 - `BrowserMultiFormatOneDReader`
 - `BrowserMultiFormatReader` (2D + 1D)
-- `BrowserPDF417CodeReader`
+- `BrowserPDF417Reader`
 - `BrowserQRCodeReader`
 
 ### Customize `BrowserCodeReader` options
@@ -191,7 +191,6 @@ You can also customize some options on the code reader at instantiation time. Mo
 
 ---
 
-[![Bless](https://cdn.rawgit.com/LunaGao/BlessYourCodeTag/master/tags/alpaca.svg)](http://lunagao.github.io/BlessYourCodeTag/)
 
 [0]: https://www.npmjs.com/package/@zxing/browser
 [1]: https://github.com/zxing/zxing

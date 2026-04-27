@@ -4,6 +4,7 @@ import {
   BinaryBitmap,
   ChecksumException,
   DecodeHintType,
+  Exception,
   FormatException,
   HybridBinarizer,
   NotFoundException,
@@ -62,7 +63,7 @@ export class BrowserCodeReader {
     await track.applyConstraints({
       advanced: [{
         fillLightMode: onOff ? 'flash' : 'off',
-        torch: onOff ? true : false,
+        torch: onOff,
       } as any],
     });
   }
@@ -94,9 +95,7 @@ export class BrowserCodeReader {
     } catch (err) {
       // some browsers may not be compatible with ImageCapture
       // so we are ignoring this for now.
-      // tslint:disable-next-line:no-console
       console.error(err);
-      // tslint:disable-next-line:no-console
       console.warn('Your browser may be not fully compatible with WebRTC and/or ImageCapture specs. Torch will not be available.');
       return false;
     }
@@ -286,13 +285,11 @@ export class BrowserCodeReader {
   public static async tryPlayVideo(videoElement: HTMLVideoElement): Promise<boolean> {
 
     if (videoElement?.ended) {
-      // tslint:disable-next-line:no-console
       console.error('Trying to play video that has ended.');
       return false;
     }
 
     if (BrowserCodeReader.isVideoPlaying(videoElement)) {
-      // tslint:disable-next-line:no-console
       console.warn('Trying to play video that is already playing.');
       return true;
     }
@@ -301,7 +298,6 @@ export class BrowserCodeReader {
       await videoElement.play();
       return true;
     } catch (error) {
-      // tslint:disable-next-line:no-console
       console.warn('It was not possible to play the video.', error);
       return false;
     }
@@ -341,7 +337,6 @@ export class BrowserCodeReader {
   public static destroyImageElement(imageElement: HTMLImageElement): void {
     imageElement.src = '';
     imageElement.removeAttribute('src');
-    imageElement = undefined;
   }
 
   /**
@@ -422,7 +417,6 @@ export class BrowserCodeReader {
    */
   public static releaseAllStreams() {
     if (BrowserCodeReader.streamTracker.length !== 0) {
-      // tslint:disable-next-line:no-console
       BrowserCodeReader.streamTracker.forEach((mediaStream) => {
         mediaStream.getTracks().forEach((track) => track.stop());
      });
@@ -548,13 +542,12 @@ export class BrowserCodeReader {
    */
   private static disposeMediaStream(stream: MediaStream) {
     stream.getVideoTracks().forEach((x) => x.stop());
-    stream = undefined;
   }
 
   /**
    * BrowserCodeReader specific configuration options.
    */
-  protected readonly options: IBrowserCodeReaderOptions;
+  protected readonly options: Required<IBrowserCodeReaderOptions>;
 
   /**
    * Creates an instance of BrowserCodeReader.
@@ -566,7 +559,7 @@ export class BrowserCodeReader {
     public hints: Map<DecodeHintType, any> = new Map<DecodeHintType, any>(),
     options: IBrowserCodeReaderOptions = {},
   ) {
-    this.options = { ...defaultOptions, ...options };
+    this.options = { ...defaultOptions, ...options } as Required<IBrowserCodeReaderOptions>;
   }
 
   /**
@@ -720,19 +713,19 @@ export class BrowserCodeReader {
       streamVideoConstraintsGet(
         trackFilter: (track: MediaStreamTrack) => MediaStreamTrack[],
       ) {
-        return videoTracks.find(trackFilter).getConstraints();
+        return videoTracks.find(trackFilter)!.getConstraints();
       },
 
       streamVideoSettingsGet(
         trackFilter: (track: MediaStreamTrack) => MediaStreamTrack[],
       ) {
-        return videoTracks.find(trackFilter).getSettings();
+        return videoTracks.find(trackFilter)!.getSettings();
       },
 
       streamVideoCapabilitiesGet(
         trackFilter: (track: MediaStreamTrack) => MediaStreamTrack[],
       ) {
-        return videoTracks.find(trackFilter).getCapabilities();
+        return videoTracks.find(trackFilter)!.getCapabilities();
       },
 
     };
@@ -745,7 +738,7 @@ export class BrowserCodeReader {
         ?.find((t) => BrowserCodeReader.mediaStreamIsTorchCompatibleTrack(t));
 
       const switchTorch = async (onOff: boolean) => {
-        await BrowserCodeReader.mediaStreamSetTorch(torchTrack, onOff);
+        await BrowserCodeReader.mediaStreamSetTorch(torchTrack!, onOff);
       };
 
       controls.switchTorch = switchTorch;
@@ -1027,7 +1020,7 @@ export class BrowserCodeReader {
     /**
      * The HTML canvas element, used to draw the video or image's frame for decoding.
      */
-    let captureCanvas = BrowserCodeReader.createCaptureCanvas(element);
+    let captureCanvas: HTMLCanvasElement | undefined = BrowserCodeReader.createCaptureCanvas(element);
 
     /**
      * The HTML canvas element context.
@@ -1050,7 +1043,7 @@ export class BrowserCodeReader {
     };
 
     let stopScan = false;
-    let lastTimeoutId: null | ReturnType<typeof setTimeout>;
+    let lastTimeoutId: ReturnType<typeof setTimeout> | undefined;
 
     // can be called to break the scan loop
     const stop = () => {
@@ -1073,12 +1066,12 @@ export class BrowserCodeReader {
 
       try {
         BrowserCodeReader.drawImageOnCanvas(captureCanvasContext, element);
-        const result = this.decodeFromCanvas(captureCanvas);
+        const result = this.decodeFromCanvas(captureCanvas!);
         callbackFn(result, undefined, controls);
         lastTimeoutId = setTimeout(loop, this.options.delayBetweenScanSuccess);
       } catch (error) {
 
-        callbackFn(undefined, error, controls);
+        callbackFn(undefined, error as Exception | undefined, controls);
 
         const isChecksumError = error instanceof ChecksumException;
         const isFormatError = error instanceof FormatException;
@@ -1092,7 +1085,7 @@ export class BrowserCodeReader {
 
         // not trying again
         disposeCanvas();
-        if (finalizeCallback) { finalizeCallback(error); }
+        if (finalizeCallback) { finalizeCallback(error as Error | undefined); }
       }
     };
 
