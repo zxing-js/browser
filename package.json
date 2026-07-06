@@ -1,6 +1,6 @@
 {
     "name": "@zxing/browser",
-    "version": "0.2.0",
+    "version": "0.2.1",
     "description": "ZXing for JS's browser layer.",
     "keywords": [
         "reader",
@@ -50,7 +50,7 @@
         "test": "jest"
     },
     "peerDependencies": {
-        "@zxing/library": "^0.22.0"
+        "@zxing/library": "^0.23.0"
     },
     "optionalDependencies": {
         "@zxing/text-encoding": "^0.9.0"
