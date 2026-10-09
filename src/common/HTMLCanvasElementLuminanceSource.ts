@@ -14,7 +14,7 @@ export class HTMLCanvasElementLuminanceSource extends LuminanceSource {
 
     try {
       canvasCtx = canvas.getContext('2d', { willReadFrequently: true });
-    } catch (e) {
+    } catch {
       canvasCtx = canvas.getContext('2d');
     }
 
@@ -48,8 +48,6 @@ export class HTMLCanvasElementLuminanceSource extends LuminanceSource {
   }
 
   private buffer: Uint8ClampedArray;
-
-  private tempCanvasElement?: HTMLCanvasElement;
 
   public constructor(private canvas: HTMLCanvasElement) {
     super(canvas.width, canvas.height);
@@ -95,64 +93,94 @@ export class HTMLCanvasElementLuminanceSource extends LuminanceSource {
   }
 
   /**
-   * This is always true, since the image is a gray-scale image.
+   * Whether rotation is supported by this luminance source.
    *
-   * @return true
+   * @return true if a canvas element can be created to rotate the image data.
    */
   public isRotateSupported(): boolean {
-    return true;
+    return Boolean(
+      (this.canvas.ownerDocument && typeof this.canvas.ownerDocument.createElement === 'function') ||
+      (typeof document !== 'undefined' && typeof document.createElement === 'function') ||
+      (typeof OffscreenCanvas !== 'undefined' && this.canvas instanceof OffscreenCanvas) ||
+      this.getCanvasConstructor()
+    );
   }
 
   public rotateCounterClockwise(): LuminanceSource {
-    this.rotate(-90);
-    return this;
+    return this.rotate(-90);
   }
 
   public rotateCounterClockwise45(): LuminanceSource {
-    this.rotate(-45);
-    return this;
+    return this.rotate(-45);
   }
 
   public invert(): LuminanceSource {
     return new InvertedLuminanceSource(this);
   }
 
-  private getTempCanvasElement() {
-    if (null === this.tempCanvasElement) {
-      const tempCanvasElement = this.canvas.ownerDocument.createElement('canvas');
-      tempCanvasElement.width = this.canvas.width;
-      tempCanvasElement.height = this.canvas.height;
-      this.tempCanvasElement = tempCanvasElement;
+  private getCanvasConstructor(): (new (width: number, height: number) => HTMLCanvasElement) | undefined {
+    const ctor = (this.canvas as unknown as { constructor?: unknown }).constructor;
+    if (typeof ctor === 'function' && ctor !== Object && ctor !== Function) {
+      return ctor as new (width: number, height: number) => HTMLCanvasElement;
     }
-
-    return this.tempCanvasElement;
+    return undefined;
   }
 
-  private rotate(angle: number) {
-    const tempCanvasElement = this.getTempCanvasElement();
-    if (!tempCanvasElement) { throw new Error('Could not create a Canvas element.'); }
+  private createCanvas(width: number, height: number): HTMLCanvasElement {
+    let canvas: HTMLCanvasElement | undefined;
+    if (this.canvas.ownerDocument && typeof this.canvas.ownerDocument.createElement === 'function') {
+      canvas = this.canvas.ownerDocument.createElement('canvas');
+    } else if (typeof document !== 'undefined' && typeof document.createElement === 'function') {
+      canvas = document.createElement('canvas');
+    } else if (typeof OffscreenCanvas !== 'undefined' && this.canvas instanceof OffscreenCanvas) {
+      canvas = new OffscreenCanvas(width, height) as unknown as HTMLCanvasElement;
+    } else {
+      const ctor = this.getCanvasConstructor();
+      if (ctor) {
+        try {
+          const constructed = new ctor(width, height);
+          if (typeof constructed.getContext === 'function') {
+            canvas = constructed;
+          }
+        } catch {
+          // constructor invocation failed
+        }
+      }
+    }
+
+    if (!canvas) {
+      throw new Error('Could not create a Canvas element.');
+    }
+
+    canvas.width = width;
+    canvas.height = height;
+    return canvas;
+  }
+
+  private rotate(angle: number): LuminanceSource {
     const angleRadians = angle * HTMLCanvasElementLuminanceSource.DEGREE_TO_RADIANS;
 
-    // Calculate and set new dimensions for temp canvas
+    // Calculate and set new dimensions for rotated canvas
     const width = this.canvas.width;
     const height = this.canvas.height;
-    const newWidth = Math.ceil(
-      Math.abs(Math.cos(angleRadians)) * width + Math.abs(Math.sin(angleRadians)) * height,
-    );
-    const newHeight = Math.ceil(
-      Math.abs(Math.sin(angleRadians)) * width + Math.abs(Math.cos(angleRadians)) * height,
-    );
-    tempCanvasElement.width = newWidth;
-    tempCanvasElement.height = newHeight;
+    let cos = Math.abs(Math.cos(angleRadians));
+    let sin = Math.abs(Math.sin(angleRadians));
+    if (cos < 1e-10) { cos = 0; }
+    if (sin < 1e-10) { sin = 0; }
+    const newWidth = Math.ceil(cos * width + sin * height);
+    const newHeight = Math.ceil(sin * width + cos * height);
 
-    const tempContext = tempCanvasElement.getContext('2d');
-    if (!tempContext) { throw new Error('Could not create a Canvas Context element.'); }
+    const rotatedCanvas = this.createCanvas(newWidth, newHeight);
+    const rotatedContext = rotatedCanvas.getContext('2d');
+    if (!rotatedContext) { throw new Error('Could not create a Canvas Context element.'); }
 
-    // Draw at center of temp canvas to prevent clipping of image data
-    tempContext.translate(newWidth / 2, newHeight / 2);
-    tempContext.rotate(angleRadians);
-    tempContext.drawImage(this.canvas, width / -2, height / -2);
-    this.buffer = HTMLCanvasElementLuminanceSource.makeBufferFromCanvasImageData(tempCanvasElement);
-    return this;
+    rotatedContext.imageSmoothingEnabled = false;
+
+    // Draw at center of rotated canvas to prevent clipping of image data
+    rotatedContext.translate(newWidth / 2, newHeight / 2);
+    rotatedContext.rotate(angleRadians);
+    rotatedContext.drawImage(this.canvas, width / -2, height / -2);
+
+    return new HTMLCanvasElementLuminanceSource(rotatedCanvas);
   }
 }
